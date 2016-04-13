@@ -10,6 +10,8 @@ import org.apache.hadoop.yarn.applications.narwhal.dispatcher.TaskEventDispatche
 import org.apache.hadoop.yarn.applications.narwhal.event.JobEventType;
 import org.apache.hadoop.yarn.applications.narwhal.event.TaskEventType;
 import org.apache.hadoop.yarn.applications.narwhal.job.Job;
+import org.apache.hadoop.yarn.applications.narwhal.service.ContainerAllocator;
+import org.apache.hadoop.yarn.applications.narwhal.service.ContainerLauncher;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.Dispatcher;
@@ -27,6 +29,8 @@ public class NAppMaster {
   private Dispatcher dispatcher;
   private JobEventDispatcher jobEventDispatcher;
   private TaskEventDispatcher taskEventDispatcher;
+  private ContainerAllocator containerAllocator;
+  private ContainerLauncher containerLauncher;
 
   private Job job;
 
@@ -76,19 +80,19 @@ public class NAppMaster {
   }
 
   protected void createContainerAllocator() {
-
+    this.containerAllocator = new ContainerAllocator(context);
   }
 
-  protected void startContainerAllocator() {
-
+  protected void startContainerAllocator() throws Exception {
+    containerAllocator.start();
   }
 
   protected void createContainerLauncher() {
-
+    this.containerLauncher = new ContainerLauncher(context);
   }
 
-  protected void startContainerLauncher() {
-
+  protected void startContainerLauncher() throws Exception {
+    containerLauncher.start();
   }
 
   protected void createJob() {
@@ -116,7 +120,7 @@ public class NAppMaster {
     LOG.info("Narwhal AM inited");
   }
 
-  public void start() {
+  public void start() throws Exception {
     createJob();
     startContainerAllocator();
     startContainerLauncher();
