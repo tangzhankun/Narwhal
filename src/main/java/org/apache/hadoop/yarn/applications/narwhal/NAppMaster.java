@@ -5,18 +5,28 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.JobEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.TaskEventDispatcher;
+import org.apache.hadoop.yarn.applications.narwhal.event.JobEvent;
 import org.apache.hadoop.yarn.applications.narwhal.event.JobEventType;
 import org.apache.hadoop.yarn.applications.narwhal.event.TaskEventType;
 import org.apache.hadoop.yarn.applications.narwhal.job.Job;
+import org.apache.hadoop.yarn.applications.narwhal.job.NJobImpl;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerAllocator;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerLauncher;
+import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
+import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.log4j.LogManager;
+
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The Narwhal Application Master
@@ -32,7 +42,12 @@ public class NAppMaster {
   private ContainerAllocator containerAllocator;
   private ContainerLauncher containerLauncher;
 
+  private AMRMClientAsync amRMClientAsync;
+  private NMClientAsync nmClientAsync;
+
   private Job job;
+  protected ApplicationAttemptId applicationAttemptId;
+
 
   public class AppContext{
     private final Configuration conf;
@@ -95,15 +110,43 @@ public class NAppMaster {
     containerLauncher.start();
   }
 
+  protected void createAMRMClientAsync() {
+    AMRMClientAsync.CallbackHandler allocListener = new RMCallbackHandler();
+    amRMClientAsync = AMRMClientAsync.createAMRMClientAsync(1000,allocListener);
+    amRMClientAsync.init(conf);
+  }
+
+  protected void createNMClientAsync() {
+    NMClientAsync.CallbackHandler launchListener = new NMCallback();
+    nmClientAsync = NMClientAsync.createNMClientAsync(launchListener);
+    nmClientAsync.init(conf);
+  }
+
+  protected void startAMRMClientAsync() {
+    amRMClientAsync.start();
+  }
+
+  protected void startNMClientAsync() {
+    nmClientAsync.start();
+  }
+
   protected void createJob() {
 
+    job = new NJobImpl("Narwhal job", null, conf, context.getEventHandler());
+    //init job event
+    jobEventDispatcher.handle(new JobEvent(job.getID(), JobEventType.JOB_INIT));
   }
 
   protected void kickOffTheBall() {
-
+    JobEvent startJobEvent = new JobEvent(job.getID(), JobEventType.JOB_START);
+    dispatcher.getEventHandler().handle(startJobEvent);
   }
 
   private boolean parseOptions(String[] args) {
+    Map<String, String> envs = System.getenv();
+    ContainerId containerId = ContainerId.fromString(
+        envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
+    applicationAttemptId = containerId.getApplicationAttemptId();
     return true;
   }
 
@@ -117,13 +160,17 @@ public class NAppMaster {
     registerTaskEventDispatcher();
     createContainerAllocator();
     createContainerLauncher();
+    createAMRMClientAsync();
+    createNMClientAsync();
     LOG.info("Narwhal AM inited");
   }
 
   public void start() throws Exception {
-    createJob();
     startContainerAllocator();
     startContainerLauncher();
+    startAMRMClientAsync();
+    startNMClientAsync();
+    createJob();
     LOG.info("Narwhal AM started");
   }
 
@@ -134,6 +181,76 @@ public class NAppMaster {
   public boolean finish() {
     stop();
     return true;
+  }
+
+  class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
+
+    private final Log LOG = LogFactory.getLog(RMCallbackHandler.class);
+
+    @Override
+    public void onContainersCompleted(List<ContainerStatus> list) {
+
+    }
+
+    @Override
+    public void onContainersAllocated(List<Container> list) {
+
+    }
+
+    @Override
+    public void onShutdownRequest() {
+
+    }
+
+    @Override
+    public void onNodesUpdated(List<NodeReport> list) {
+
+    }
+
+    @Override
+    public float getProgress() {
+      return 0;
+    }
+
+    @Override
+    public void onError(Throwable throwable) {
+
+    }
+  }
+
+  class NMCallback implements NMClientAsync.CallbackHandler {
+
+    private final Log LOG = LogFactory.getLog(NMCallback.class);
+
+    @Override
+    public void onContainerStarted(ContainerId containerId, Map<String, ByteBuffer> map) {
+
+    }
+
+    @Override
+    public void onContainerStatusReceived(ContainerId containerId, ContainerStatus containerStatus) {
+
+    }
+
+    @Override
+    public void onContainerStopped(ContainerId containerId) {
+
+    }
+
+    @Override
+    public void onStartContainerError(ContainerId containerId, Throwable throwable) {
+
+    }
+
+    @Override
+    public void onGetContainerStatusError(ContainerId containerId, Throwable throwable) {
+
+    }
+
+    @Override
+    public void onStopContainerError(ContainerId containerId, Throwable throwable) {
+
+    }
   }
 
   public static void main(String[] args) {

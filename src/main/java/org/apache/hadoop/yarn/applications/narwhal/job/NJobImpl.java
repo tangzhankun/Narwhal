@@ -6,12 +6,19 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.applications.narwhal.event.JobEvent;
 import org.apache.hadoop.yarn.applications.narwhal.event.JobEventType;
+import org.apache.hadoop.yarn.applications.narwhal.event.TaskEvent;
+import org.apache.hadoop.yarn.applications.narwhal.event.TaskEventType;
 import org.apache.hadoop.yarn.applications.narwhal.state.JobState;
+import org.apache.hadoop.yarn.applications.narwhal.task.NTaskImpl;
 import org.apache.hadoop.yarn.applications.narwhal.task.Task;
 import org.apache.hadoop.yarn.applications.narwhal.task.TaskId;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.hadoop.yarn.state.MultipleArcTransition;
+import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
+import org.apache.hadoop.yarn.state.StateMachineFactory;
 
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.concurrent.locks.Lock;
 
@@ -32,13 +39,120 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
   private Lock writeLock;
   private LinkedHashMap<TaskId, Task> tasks = new LinkedHashMap<TaskId, Task>();
 
+  private static final ErrorTransition ERROR_TRANSITION =
+      new ErrorTransition();
+
+  private static class InitTransition implements
+      MultipleArcTransition<NJobImpl, JobEvent, JobState> {
+
+    @Override
+    public JobState transition(NJobImpl nJob, JobEvent jobEvent) {
+      createTasks(nJob);
+      return JobState.INITED;
+    }
+
+    private void createTasks(NJobImpl nJob) {
+      int taskNum = 5;
+      for (int i = 0; i < taskNum; i++) {
+        Task task = new NTaskImpl(nJob.getID(), i, nJob.eventHandler);
+        nJob.addTask(task);
+      }
+    }
+  }
+
+  private static class ErrorTransition implements
+      SingleArcTransition<NJobImpl, JobEvent> {
+
+    @Override
+    public void transition(NJobImpl nJob, JobEvent jobEvent) {
+      //error happens, stop the application
+    }
+  }
+
+  private static class KillTransition implements
+      SingleArcTransition<NJobImpl, JobEvent> {
+
+    @Override
+    public void transition(NJobImpl nJob, JobEvent jobEvent) {
+      //application was killed
+    }
+  }
+
+  private static class StartTransition implements
+      SingleArcTransition<NJobImpl, JobEvent> {
+
+    @Override
+    public void transition(NJobImpl nJob, JobEvent jobEvent) {
+      //should send event to start each task
+      for (Task task: nJob.tasks.values()){
+        nJob.eventHandler.handle(new TaskEvent(task.getID(), TaskEventType.TASK_SCHEDULE));
+      }
+    }
+  }
+
+  private static class CompleteTransition implements
+      MultipleArcTransition<NJobImpl, JobEvent, JobState> {
+
+    @Override
+    public JobState transition(NJobImpl nJob, JobEvent jobEvent) {
+      //count the success finished task or handle failed task
+      //if all tasks success, return SUCCEED
+      return JobState.SUCCED;
+    }
+  }
+
+  protected static final StateMachineFactory<NJobImpl, JobState, JobEventType, JobEvent>
+      stateMachineFactory
+      = new StateMachineFactory<NJobImpl, JobState, JobEventType, JobEvent>(JobState.NEW)
+      //Transitions from NEW
+      //NEW -> (INITED,FAILED): InitTransition
+      .addTransition(JobState.NEW,
+          EnumSet.of(JobState.INITED, JobState.FAILED),
+          JobEventType.JOB_INIT,
+          new InitTransition())
+      //NEW -> ERROR: ErrorTransition
+      .addTransition(JobState.NEW,
+          JobState.ERROR,
+          JobEventType.JOB_ERROR,
+          ERROR_TRANSITION)
+      //NEW -> KILLED: KillTransition
+      .addTransition(JobState.NEW,
+          JobState.KILLED,
+          JobEventType.JOB_KILL,
+          new KillTransition())
+
+      //Transitions from INITED
+      //INITED -> STARTED: StartTransition
+      .addTransition(JobState.INITED,
+          JobState.STARTED,
+          JobEventType.JOB_START,
+          new StartTransition())
+      //INITED -> ERROR: ErrorTranstion
+      .addTransition(JobState.INITED,
+          JobState.ERROR,
+          JobEventType.JOB_START,
+          ERROR_TRANSITION)
+
+      //Transitions from STARTED
+      //STARTED -> (SUCCEED,FAILED): CompleteTransition
+      .addTransition(JobState.STARTED,
+          EnumSet.of(JobState.SUCCED, JobState.FAILED),
+          JobEventType.JOB_COMPLETED,
+          new CompleteTransition())
+      //STARTED -> ERROR: ErrorTransition
+      .addTransition(JobState.STARTED,
+          JobState.ERROR,
+          JobEventType.JOB_ERROR,
+          ERROR_TRANSITION)
+      .installTopology();
+
   public NJobImpl(String name, ApplicationAttemptId appAttemptId,
                   Configuration conf, EventHandler eventHandler) {
     this.name = name;
     this.jobId = new JobId(appAttemptId);
     this.conf = conf;
     this.eventHandler = eventHandler;
-    this.stateMachine = null;
+    this.stateMachine = stateMachineFactory.make(this);
   }
 
   @Override

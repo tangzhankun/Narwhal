@@ -8,6 +8,8 @@ public class TaskId {
 
   private JobId jobId;
 
+  private int id;
+
   private ContainerId containerId;
 
   public JobId getJobId() {
@@ -22,6 +24,10 @@ public class TaskId {
     this.containerId = containerId;
   }
 
+  public TaskId(JobId jobId, int id) {
+    this.jobId = jobId;
+    this.id = id;
+  }
 
 
 }
