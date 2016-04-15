@@ -12,6 +12,10 @@ public class ContainerAllocatorEvent extends AbstractEvent<ContainerAllocatorEve
     this.taskId = taskId;
   }
 
+  public TaskId getId() {
+    return taskId;
+  }
+
   public String toString() {
     return super.toString() + ", taskId: " + taskId.toString();
   }

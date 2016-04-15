@@ -58,8 +58,9 @@ public abstract class EventLoop {
     };//thread
     LOG.info("service event loop started");
     this.eventHandlingThread.start();
+    startClientAsync();
   }
 
   public abstract void processEvent(AbstractEvent event);
-
+  public abstract void startClientAsync();
 }

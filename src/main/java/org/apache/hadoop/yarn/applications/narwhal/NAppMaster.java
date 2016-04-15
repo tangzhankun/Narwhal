@@ -16,16 +16,12 @@ import org.apache.hadoop.yarn.applications.narwhal.job.Job;
 import org.apache.hadoop.yarn.applications.narwhal.job.NJobImpl;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerAllocator;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerLauncher;
-import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
-import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.log4j.LogManager;
 
-import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,10 +37,6 @@ public class NAppMaster {
   private TaskEventDispatcher taskEventDispatcher;
   private ContainerAllocator containerAllocator;
   private ContainerLauncher containerLauncher;
-
-  private AMRMClientAsync amRMClientAsync;
-  private NMClientAsync nmClientAsync;
-
   private Job job;
   protected ApplicationAttemptId applicationAttemptId;
 
@@ -61,6 +53,10 @@ public class NAppMaster {
 
     public Job getJob(){
       return job;
+    }
+
+    public Configuration getConf() {
+      return conf;
     }
   }
 
@@ -110,26 +106,6 @@ public class NAppMaster {
     containerLauncher.start();
   }
 
-  protected void createAMRMClientAsync() {
-    AMRMClientAsync.CallbackHandler allocListener = new RMCallbackHandler();
-    amRMClientAsync = AMRMClientAsync.createAMRMClientAsync(1000,allocListener);
-    amRMClientAsync.init(conf);
-  }
-
-  protected void createNMClientAsync() {
-    NMClientAsync.CallbackHandler launchListener = new NMCallback();
-    nmClientAsync = NMClientAsync.createNMClientAsync(launchListener);
-    nmClientAsync.init(conf);
-  }
-
-  protected void startAMRMClientAsync() {
-    amRMClientAsync.start();
-  }
-
-  protected void startNMClientAsync() {
-    nmClientAsync.start();
-  }
-
   protected void createJob() {
 
     job = new NJobImpl("Narwhal job", null, conf, context.getEventHandler());
@@ -160,16 +136,12 @@ public class NAppMaster {
     registerTaskEventDispatcher();
     createContainerAllocator();
     createContainerLauncher();
-    createAMRMClientAsync();
-    createNMClientAsync();
     LOG.info("Narwhal AM inited");
   }
 
   public void start() throws Exception {
     startContainerAllocator();
     startContainerLauncher();
-    startAMRMClientAsync();
-    startNMClientAsync();
     createJob();
     LOG.info("Narwhal AM started");
   }
@@ -181,76 +153,6 @@ public class NAppMaster {
   public boolean finish() {
     stop();
     return true;
-  }
-
-  class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
-
-    private final Log LOG = LogFactory.getLog(RMCallbackHandler.class);
-
-    @Override
-    public void onContainersCompleted(List<ContainerStatus> list) {
-
-    }
-
-    @Override
-    public void onContainersAllocated(List<Container> list) {
-
-    }
-
-    @Override
-    public void onShutdownRequest() {
-
-    }
-
-    @Override
-    public void onNodesUpdated(List<NodeReport> list) {
-
-    }
-
-    @Override
-    public float getProgress() {
-      return 0;
-    }
-
-    @Override
-    public void onError(Throwable throwable) {
-
-    }
-  }
-
-  class NMCallback implements NMClientAsync.CallbackHandler {
-
-    private final Log LOG = LogFactory.getLog(NMCallback.class);
-
-    @Override
-    public void onContainerStarted(ContainerId containerId, Map<String, ByteBuffer> map) {
-
-    }
-
-    @Override
-    public void onContainerStatusReceived(ContainerId containerId, ContainerStatus containerStatus) {
-
-    }
-
-    @Override
-    public void onContainerStopped(ContainerId containerId) {
-
-    }
-
-    @Override
-    public void onStartContainerError(ContainerId containerId, Throwable throwable) {
-
-    }
-
-    @Override
-    public void onGetContainerStatusError(ContainerId containerId, Throwable throwable) {
-
-    }
-
-    @Override
-    public void onStopContainerError(ContainerId containerId, Throwable throwable) {
-
-    }
   }
 
   public static void main(String[] args) {

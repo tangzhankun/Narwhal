@@ -21,6 +21,8 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 /**
@@ -37,10 +39,13 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
   private final String name;
   private Lock readLock;
   private Lock writeLock;
-  private LinkedHashMap<TaskId, Task> tasks = new LinkedHashMap<TaskId, Task>();
+  private LinkedHashMap<TaskId, Task> tasks = new LinkedHashMap<>();
 
   private static final ErrorTransition ERROR_TRANSITION =
       new ErrorTransition();
+
+  private static final KillTransition KILL_TRANSITION =
+      new KillTransition();
 
   private static class InitTransition implements
       MultipleArcTransition<NJobImpl, JobEvent, JobState> {
@@ -119,7 +124,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
       .addTransition(JobState.NEW,
           JobState.KILLED,
           JobEventType.JOB_KILL,
-          new KillTransition())
+          KILL_TRANSITION)
 
       //Transitions from INITED
       //INITED -> STARTED: StartTransition
@@ -144,6 +149,11 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
           JobState.ERROR,
           JobEventType.JOB_ERROR,
           ERROR_TRANSITION)
+      //STARTED -> KILLED: KillTransition
+      .addTransition(JobState.STARTED,
+          JobState.KILLED,
+          JobEventType.JOB_KILL,
+          KILL_TRANSITION)
       .installTopology();
 
   public NJobImpl(String name, ApplicationAttemptId appAttemptId,
@@ -152,6 +162,9 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
     this.jobId = new JobId(appAttemptId);
     this.conf = conf;
     this.eventHandler = eventHandler;
+    ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    this.readLock = readWriteLock.readLock();
+    this.writeLock = readWriteLock.writeLock();
     this.stateMachine = stateMachineFactory.make(this);
   }
 
@@ -183,7 +196,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
     return stateMachine;
   }
 
-  public JobState getInternalState() {
+  public JobState getStatus() {
     return getStateMachine().getCurrentState();
   }
 
@@ -193,11 +206,11 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
 
     try {
       writeLock.lock();
-      JobState oldState = getInternalState();
+      JobState oldState = getStatus();
       getStateMachine().doTransition(jobEvent.getType(), jobEvent);
-      if (oldState != getInternalState()) {
+      if (oldState != getStatus()) {
         LOG.info(jobId + "Job Transitioned from " + oldState + " to "
-            + getInternalState());
+            + getStatus());
       }
     } catch (Exception e) {
       LOG.error("Can't handle this event at current state", e);

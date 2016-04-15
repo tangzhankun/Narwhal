@@ -15,6 +15,14 @@ public class ContainerLauncherEvent extends AbstractEvent<ContainerLauncherEvent
     this.container = container;
   }
 
+  public TaskId getId() {
+    return taskID;
+  }
+
+  public Container getContainer() {
+    return container;
+  }
+
   public String toString() {
     return super.toString() + ", taskId: " + taskID;
   }
