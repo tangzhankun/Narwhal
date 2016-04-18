@@ -16,6 +16,7 @@ import org.apache.hadoop.yarn.applications.narwhal.job.NJobImpl;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerAllocator;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerLauncher;
 import org.apache.hadoop.yarn.applications.narwhal.state.JobState;
+import org.apache.hadoop.yarn.applications.narwhal.task.Task;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.Dispatcher;
@@ -173,9 +174,9 @@ public class NAppMaster {
   }
 
   public boolean finish() throws InterruptedException {
-    NJobImpl nJob = (NJobImpl) job;
-    JobState state = nJob.getStatus();
+    NJobImpl nJob = (NJobImpl)job;
     while (true) {
+      JobState state = nJob.getStatus();
       if (state == JobState.ERROR |
           state == JobState.FAILED |
           state == JobState.SUCCEED) {

@@ -41,6 +41,8 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
   private Lock writeLock;
   private LinkedHashMap<TaskId, Task> tasks = new LinkedHashMap<>();
 
+  private int finishedTasksCount = 0;
+
   private static final ErrorTransition ERROR_TRANSITION =
       new ErrorTransition();
 
@@ -104,19 +106,24 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
 
     @Override
     public JobState transition(NJobImpl nJob, JobEvent jobEvent) {
+      LOG.info("**JobCompleteTransition**");
       //count the success finished task or handle failed task
       //if all tasks success, return SUCCEED
-      int finishedTasksNum = 0;
+      nJob.finishedTasksCount++;
       List<Task> allTasks = nJob.getTasks();
-      for (Task task : allTasks) {
-        if (task.getStatus().equals(TaskState.SUCCEED) |
-            task.getStatus().equals(TaskState.FAILED) |
-            task.getStatus().equals(TaskState.KILLED)) {
-          finishedTasksNum++;
+      LOG.info("(" + nJob.finishedTasksCount + "/" + allTasks.size() + ") tasks finished");
+      if (nJob.finishedTasksCount == allTasks.size()) {
+        int count = 0;
+        for (Task task : allTasks) {
+          if (task.getStatus().equals(TaskState.SUCCEED)) {
+            count++;
+          }
         }
-      }
-      if (finishedTasksNum == allTasks.size()) {
-        return JobState.SUCCEED;
+        if (count == allTasks.size()) {
+          return JobState.SUCCEED;
+        } else {
+          return JobState.FAILED;
+        }
       } else {
         return JobState.STARTED;
       }
