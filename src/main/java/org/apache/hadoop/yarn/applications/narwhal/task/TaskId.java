@@ -29,5 +29,12 @@ public class TaskId {
     this.id = id;
   }
 
+  public int getId() {
+    return id;
+  }
+
+  public String toString() {
+    return this.jobId + "_task_" + this.id;
+  }
 
 }

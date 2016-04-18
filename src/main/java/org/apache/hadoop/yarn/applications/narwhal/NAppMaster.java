@@ -9,13 +9,12 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.JobEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.TaskEventDispatcher;
-import org.apache.hadoop.yarn.applications.narwhal.event.JobEvent;
-import org.apache.hadoop.yarn.applications.narwhal.event.JobEventType;
-import org.apache.hadoop.yarn.applications.narwhal.event.TaskEventType;
+import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.job.Job;
 import org.apache.hadoop.yarn.applications.narwhal.job.NJobImpl;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerAllocator;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerLauncher;
+import org.apache.hadoop.yarn.applications.narwhal.state.JobState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.apache.hadoop.yarn.event.Dispatcher;
@@ -94,6 +93,10 @@ public class NAppMaster {
     this.containerAllocator = new ContainerAllocator(context);
   }
 
+  protected void registerContainerAllocator() {
+    dispatcher.register(ContainerAllocatorEventType.class, containerAllocator);
+  }
+
   protected void startContainerAllocator() throws Exception {
     containerAllocator.start();
   }
@@ -102,13 +105,17 @@ public class NAppMaster {
     this.containerLauncher = new ContainerLauncher(context);
   }
 
+  protected void registerContainerLauncher() {
+    dispatcher.register(ContainerLauncherEventType.class, containerLauncher);
+  }
+
   protected void startContainerLauncher() throws Exception {
     containerLauncher.start();
   }
 
   protected void createJob() {
 
-    job = new NJobImpl("Narwhal job", null, conf, context.getEventHandler());
+    job = new NJobImpl("Narwhal job", "appattempt_1458598848952_0028_000002", conf, context.getEventHandler());
     //init job event
     jobEventDispatcher.handle(new JobEvent(job.getID(), JobEventType.JOB_INIT));
   }
@@ -123,6 +130,7 @@ public class NAppMaster {
     ContainerId containerId = ContainerId.fromString(
         envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
     applicationAttemptId = containerId.getApplicationAttemptId();
+    LOG.info("applicationAttemptId: " + applicationAttemptId);
     return true;
   }
 
@@ -136,6 +144,8 @@ public class NAppMaster {
     registerTaskEventDispatcher();
     createContainerAllocator();
     createContainerLauncher();
+    registerContainerAllocator();
+    registerContainerLauncher();
     LOG.info("Narwhal AM inited");
   }
 
@@ -150,9 +160,18 @@ public class NAppMaster {
     ((AbstractService)dispatcher).stop();
   }
 
-  public boolean finish() {
-    stop();
-    return true;
+  public boolean finish() throws InterruptedException {
+    NJobImpl nJob = (NJobImpl) job;
+    JobState state = nJob.getStatus();
+    while (true) {
+      if (state == JobState.ERROR |
+          state == JobState.FAILED |
+          state == JobState.SUCCEED) {
+        stop();
+        return state == JobState.SUCCEED;
+      }
+      Thread.sleep(5000);
+    }
   }
 
   public static void main(String[] args) {

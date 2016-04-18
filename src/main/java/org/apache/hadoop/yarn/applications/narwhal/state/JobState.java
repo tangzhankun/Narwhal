@@ -7,6 +7,6 @@ public enum JobState {
   KILLED,
   STARTED,
   FAILED,
-  SUCCED,
+  SUCCEED,
   ERROR
 }

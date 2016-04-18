@@ -3,9 +3,7 @@ package org.apache.hadoop.yarn.applications.narwhal.service;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.apache.hadoop.yarn.api.records.NodeReport;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.applications.narwhal.NAppMaster;
 import org.apache.hadoop.yarn.applications.narwhal.event.ContainerAllocatorEvent;
 import org.apache.hadoop.yarn.applications.narwhal.event.TaskEvent;
@@ -16,6 +14,7 @@ import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,7 +25,23 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
   private AMRMClientAsync amRMClientAsync;
 
+  private AMRMClientAsync.CallbackHandler allocListener;
+
   private List<TaskId> pendingTasks = Collections.synchronizedList(new LinkedList<TaskId>());
+
+  public static List<Container> containers = new ArrayList<>(1);
+
+  static {
+    //fake code
+    for (int i = 1; i < 2; i++) {
+      ApplicationId applicationId = ApplicationId.newInstance(i, i);
+      ApplicationAttemptId applicationAttemptId = ApplicationAttemptId.newInstance(applicationId, i);
+      ContainerId containerId = ContainerId.newContainerId(applicationAttemptId, i);
+      Container container = Container.newInstance(containerId, NodeId.newInstance("host", 5000),
+          "host:80", Resource.newInstance(1024, 1), Priority.newInstance(0), null);
+      containers.add(container);
+    }
+  }
 
   @Override
   public void handle(ContainerAllocatorEvent containerAllocatorEvent) {
@@ -38,7 +53,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
   }
 
   protected AMRMClientAsync createAMRMClientAsync() {
-    AMRMClientAsync.CallbackHandler allocListener = new RMCallbackHandler();
+    allocListener = new RMCallbackHandler();
     amRMClientAsync = AMRMClientAsync.createAMRMClientAsync(1000,allocListener);
     amRMClientAsync.init(context.getConf());
     return amRMClientAsync;
@@ -71,6 +86,8 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     LOG.info("allocate container from AM");
     //amRMclient.addContainerRequest()
     pendingTasks.add(event.getId());
+    //fake code
+    allocListener.onContainersAllocated(containers);
   }
 
   private void releaseContainer() {
@@ -95,7 +112,9 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
         taskId.setContainerId(allocatedContainer.getId());
         TaskEvent taskEvent = new TaskEvent(taskId, TaskEventType.TASK_SETUP);
         taskEvent.setContainer(allocatedContainer);
+        LOG.info("post TaskEvent:" +taskEvent + " to " + taskId);
         eventHandler.handle(taskEvent);
+        pendingTasks.remove(0);
       }
     }
 

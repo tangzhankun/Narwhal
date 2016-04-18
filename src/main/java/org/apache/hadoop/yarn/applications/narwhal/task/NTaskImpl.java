@@ -3,7 +3,6 @@ package org.apache.hadoop.yarn.applications.narwhal.task;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
-import org.apache.hadoop.yarn.applications.narwhal.state.JobState;
 import org.apache.hadoop.yarn.applications.narwhal.state.TaskState;
 import org.apache.hadoop.yarn.applications.narwhal.job.JobId;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -14,6 +13,8 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 
 import java.util.EnumSet;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  *
@@ -43,6 +44,8 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     this.eventHandler = eventHandler;
     this.taskId = new TaskId(jobId, id);
     this.stateMachine = stateMachineFactory.make(this);
+    ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    this.writeLock = readWriteLock.writeLock();
   }
 
   private static class ErrorTransition implements
@@ -59,6 +62,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
     @Override
     public void transition(NTaskImpl nTask, TaskEvent taskEvent) {
+      LOG.info("**TaskScheduleTransition**");
       //post an event to ContainerAllocator for allocate container
       nTask.eventHandler.handle(new ContainerAllocatorEvent(nTask.getID(),
           ContainerAllocatorEventType.CONTAINERALLOCATOR_REQEUST));
@@ -79,6 +83,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
     @Override
     public TaskState transition(NTaskImpl nTask, TaskEvent taskEvent) {
+      LOG.info("**TaskSetupTransition**");
       //if need to load image file , new an worker and post event to run it
       //when worker succeed in loading image, post a TASK_LAUNCH event
       nTask.eventHandler.handle(new TaskEvent(taskEvent.getTaskID(),
@@ -92,6 +97,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
     @Override
     public void transition(NTaskImpl nTask, TaskEvent taskEvent) {
+      LOG.info("**TaskLaunchTransition**");
       //post event to containerLauncher to launch the container
       nTask.eventHandler.handle(new ContainerLauncherEvent(taskEvent.getTaskID(),
           taskEvent.getContainer(),
@@ -131,6 +137,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
           TaskEventType.TASK_SETUP,
           new SetupTransition())
       //Transitions from READY: LaunchTransition
+      //READY -> RUNNING: LaunchTransition
       .addTransition(TaskState.READY,
           TaskState.RUNNING,
           TaskEventType.TASK_LAUNCH,
@@ -150,13 +157,13 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
   @Override
   public void handle(TaskEvent taskEvent) {
-    LOG.info("Processing " + taskEvent.getTaskID() + "of type" + taskEvent.getType());
+    LOG.info("Processing " + taskEvent.getTaskID() + " of type " + taskEvent.getType());
     try {
       writeLock.lock();
       TaskState oldState = getStatus();
       getStateMachine().doTransition(taskEvent.getType(), taskEvent);
       if (oldState != getStatus()) {
-        LOG.info(taskId + "Task Transitioned from " + oldState + " to "
+        LOG.info("task_" + taskId.getId() + " Transitioned from " + oldState + " to "
             + getStatus());
       }
     } catch (Exception e) {

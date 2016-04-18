@@ -21,6 +21,7 @@ public class TaskEventDispatcher implements EventHandler<TaskEvent>{
 
   @Override
   public void handle(TaskEvent taskEvent) {
+    LOG.info("dispatch TaskEvent: " + taskEvent);
     Task task = context.getJob().getTask(taskEvent.getTaskID());
     ((EventHandler<TaskEvent>)task).handle(taskEvent);
   }

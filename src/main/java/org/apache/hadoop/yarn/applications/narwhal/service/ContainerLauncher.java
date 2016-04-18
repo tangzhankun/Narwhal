@@ -2,9 +2,7 @@ package org.apache.hadoop.yarn.applications.narwhal.service;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.applications.narwhal.NAppMaster;
 import org.apache.hadoop.yarn.applications.narwhal.event.ContainerLauncherEvent;
 import org.apache.hadoop.yarn.applications.narwhal.event.TaskEvent;
@@ -27,6 +25,8 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
   private static final Log LOG = LogFactory.getLog(ContainerLauncher.class);
 
   private NMClientAsync nmClientAsync;
+
+  private NMClientAsync.CallbackHandler launchListener;
 
   private ConcurrentHashMap<ContainerId, TaskId> scheduledContainers =
       new ConcurrentHashMap<>();
@@ -73,7 +73,7 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
   }
 
   protected NMClientAsync createNMClientAsync() {
-    NMClientAsync.CallbackHandler launchListener = new NMCallback();
+    launchListener = new NMCallback();
     nmClientAsync = NMClientAsync.createNMClientAsync(launchListener);
     nmClientAsync.init(context.getConf());
     return nmClientAsync;
@@ -83,6 +83,17 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
     LOG.info("start container");
     //nmClientAsync.startContainerAsync()
     scheduledContainers.put(event.getId().getContainerId(), event.getId());
+    //fake code
+    for (int i = 1; i < 6; i++) {
+      ApplicationId applicationId = ApplicationId.newInstance(i, i);
+      ApplicationAttemptId applicationAttemptId = ApplicationAttemptId.newInstance(applicationId, i);
+      ContainerId containerId = ContainerId.newContainerId(applicationAttemptId, i);
+      Container container = Container.newInstance(containerId, NodeId.newInstance("host", 5000),
+          "host:80", Resource.newInstance(1024, 1), Priority.newInstance(0), null);
+      launchListener.onContainerStarted(containerId,null);
+    }
+
+
   }
 
   private void completeContainer() {
@@ -107,6 +118,9 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
           startdContainers.put(containerId, scheduledContainers.get(scheduledContainerId));
           //remove from schedulerContainer list
           it.remove();
+
+          //fake code
+          launchListener.onContainerStopped(containerId);
         }
       }
     }
@@ -118,6 +132,7 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
 
     @Override
     public void onContainerStopped(ContainerId containerId) {
+      LOG.info("Container stopped");
       Iterator<ContainerId> it = startdContainers.keySet().iterator();
       while (it.hasNext()) {
         ContainerId startedContainerId = it.next();
