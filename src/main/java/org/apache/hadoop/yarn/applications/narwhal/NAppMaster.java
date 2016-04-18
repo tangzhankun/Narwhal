@@ -9,6 +9,7 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.JobEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.TaskEventDispatcher;
+import org.apache.hadoop.yarn.applications.narwhal.dispatcher.WorkerEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.job.Job;
 import org.apache.hadoop.yarn.applications.narwhal.job.NJobImpl;
@@ -34,6 +35,7 @@ public class NAppMaster {
   private Dispatcher dispatcher;
   private JobEventDispatcher jobEventDispatcher;
   private TaskEventDispatcher taskEventDispatcher;
+  private WorkerEventDispatcher workerEventDispatcher;
   private ContainerAllocator containerAllocator;
   private ContainerLauncher containerLauncher;
   private Job job;
@@ -89,6 +91,14 @@ public class NAppMaster {
     dispatcher.register(TaskEventType.class, taskEventDispatcher);
   }
 
+  protected void createWorkerEventDispatcher() {
+    this.workerEventDispatcher = new WorkerEventDispatcher(context);
+  }
+
+  protected void registerWorkerEventDispatcher() {
+    dispatcher.register(WorkerEventType.class, workerEventDispatcher);
+  }
+
   protected void createContainerAllocator() {
     this.containerAllocator = new ContainerAllocator(context);
   }
@@ -140,8 +150,10 @@ public class NAppMaster {
     startDispatcher();
     createJobEventDispatcher();
     createTaskEventDispatcher();
+    createWorkerEventDispatcher();
     registerJobEventDispatcher();
     registerTaskEventDispatcher();
+    registerWorkerEventDispatcher();
     createContainerAllocator();
     createContainerLauncher();
     registerContainerAllocator();

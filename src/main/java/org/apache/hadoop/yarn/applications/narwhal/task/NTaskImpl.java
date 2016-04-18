@@ -5,6 +5,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.state.TaskState;
 import org.apache.hadoop.yarn.applications.narwhal.job.JobId;
+import org.apache.hadoop.yarn.applications.narwhal.state.WorkerState;
+import org.apache.hadoop.yarn.applications.narwhal.worker.NWorkerImpl;
+import org.apache.hadoop.yarn.applications.narwhal.worker.Worker;
+import org.apache.hadoop.yarn.applications.narwhal.worker.WorkerId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
@@ -12,6 +16,7 @@ import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -27,8 +32,10 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
   private String hostname;
   private String rackname;
   private String port;
+  private Lock readLock;
   private Lock writeLock;
 
+  private LinkedHashMap<WorkerId, Worker> workers = new LinkedHashMap<>();
   private final EventHandler eventHandler;
 
   private final StateMachine<TaskState, TaskEventType, TaskEvent> stateMachine;
@@ -45,6 +52,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     this.taskId = new TaskId(jobId, id);
     this.stateMachine = stateMachineFactory.make(this);
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
   }
 
@@ -84,11 +92,42 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     @Override
     public TaskState transition(NTaskImpl nTask, TaskEvent taskEvent) {
       LOG.info("**TaskSetupTransition**");
-      //if need to load image file , new an worker and post event to run it
+      //if need to load image file , new a worker and post event to run it
       //when worker succeed in loading image, post a TASK_LAUNCH event
-      nTask.eventHandler.handle(new TaskEvent(taskEvent.getTaskID(),
-          TaskEventType.TASK_LAUNCH));
-      return TaskState.READY;
+      boolean local = true;
+      if (local) {
+        if (currentWorkerSucceed(nTask)) {
+          nTask.workers.clear();
+          nTask.eventHandler.handle(new TaskEvent(taskEvent.getTaskID(),
+              TaskEventType.TASK_LAUNCH));
+          return TaskState.READY;
+        }
+        LOG.info("new Worker");
+        String hostname = taskEvent.getContainer().getNodeId().getHost();
+        NWorkerImpl worker = new NWorkerImpl(taskEvent.getTaskID(), 0,
+            nTask.eventHandler, hostname);
+        nTask.eventHandler.handle(new WorkerEvent(worker.getID(),
+            WorkerEventType.WORKER_SCHEDULE));
+        nTask.addWorker(worker);
+        //state unchanged, wait for worker succeed here
+        return TaskState.SCHEDULED;
+      } else {
+        nTask.eventHandler.handle(new TaskEvent(taskEvent.getTaskID(),
+            TaskEventType.TASK_LAUNCH));
+        return TaskState.READY;
+      }
+    }
+    public boolean currentWorkerSucceed(NTaskImpl nTask) {
+      if (nTask.workers.size() == 0) {
+        return false;
+      }
+      int finishedNum = 0;
+      for (Worker worker : nTask.workers.values()) {
+        if (worker.getStatus().equals(WorkerState.SUCCEED)) {
+          finishedNum ++;
+        }
+      }
+      return finishedNum == nTask.workers.size();
     }
   }
 
@@ -131,9 +170,9 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
           TaskEventType.TASK_KILL,
           KILL_TRANSITION)
       //Transitions from SCHEDULED
-      //SCHEDULED -> (READY,FAILED): SetupTransition
+      //SCHEDULED -> (SCHEDULED,READY,FAILED): SetupTransition
       .addTransition(TaskState.SCHEDULED,
-          EnumSet.of(TaskState.READY, TaskState.FAILED),
+          EnumSet.of(TaskState.SCHEDULED, TaskState.READY, TaskState.FAILED),
           TaskEventType.TASK_SETUP,
           new SetupTransition())
       //Transitions from READY: LaunchTransition
@@ -185,7 +224,22 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     return getStateMachine().getCurrentState();
   }
 
+  @Override
+  public Worker getWorker(WorkerId workerId) {
+    readLock.lock();
+    try {
+      return workers.get(workerId);
+    } finally {
+      readLock.unlock();
+    }
+  }
+
   public StateMachine<TaskState, TaskEventType, TaskEvent> getStateMachine() {
     return stateMachine;
   }
+
+  protected void addWorker(Worker worker) {
+    workers.put(worker.getID(), worker);
+  }
+
 }

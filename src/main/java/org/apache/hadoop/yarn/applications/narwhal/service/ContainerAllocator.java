@@ -5,10 +5,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.applications.narwhal.NAppMaster;
-import org.apache.hadoop.yarn.applications.narwhal.event.ContainerAllocatorEvent;
-import org.apache.hadoop.yarn.applications.narwhal.event.TaskEvent;
-import org.apache.hadoop.yarn.applications.narwhal.event.TaskEventType;
+import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.task.TaskId;
+import org.apache.hadoop.yarn.applications.narwhal.task.ExecutorID;
+import org.apache.hadoop.yarn.applications.narwhal.worker.WorkerId;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -27,7 +27,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
   private AMRMClientAsync.CallbackHandler allocListener;
 
-  private List<TaskId> pendingTasks = Collections.synchronizedList(new LinkedList<TaskId>());
+  private List<ExecutorID> pendingTasks = Collections.synchronizedList(new LinkedList<ExecutorID>());
 
   public static List<Container> containers = new ArrayList<>(1);
 
@@ -84,6 +84,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
   private void setupAndAddContainer(ContainerAllocatorEvent event) {
     LOG.info("allocate container from AM");
+    //setup the ContainerRequest
     //amRMclient.addContainerRequest()
     pendingTasks.add(event.getId());
     //fake code
@@ -108,12 +109,20 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     public void onContainersAllocated(List<Container> list) {
       //assign containers to tasks
       for (Container allocatedContainer : list) {
-        TaskId taskId = pendingTasks.get(0);
-        taskId.setContainerId(allocatedContainer.getId());
-        TaskEvent taskEvent = new TaskEvent(taskId, TaskEventType.TASK_SETUP);
-        taskEvent.setContainer(allocatedContainer);
-        LOG.info("post TaskEvent:" +taskEvent + " to " + taskId);
-        eventHandler.handle(taskEvent);
+        ExecutorID id = pendingTasks.get(0);
+        id.setContainerId(allocatedContainer.getId());
+        if (id instanceof TaskId) {
+          TaskEvent taskEvent = new TaskEvent((TaskId)id, TaskEventType.TASK_SETUP);
+          taskEvent.setContainer(allocatedContainer);
+          LOG.info("post TaskEvent:" + taskEvent + " to " + id);
+          eventHandler.handle(taskEvent);
+        }
+        if (id instanceof WorkerId) {
+          WorkerEvent workerEvent = new WorkerEvent((WorkerId)id, WorkerEventType.WORKER_START);
+          workerEvent.setContainer(allocatedContainer);
+          LOG.info("post WorkerEvent:" + workerEvent + " to " + id);
+          eventHandler.handle(workerEvent);
+        }
         pendingTasks.remove(0);
       }
     }

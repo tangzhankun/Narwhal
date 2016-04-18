@@ -58,7 +58,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
     }
 
     private void createTasks(NJobImpl nJob) {
-      int taskNum = 5;
+      int taskNum = 2;
       for (int i = 0; i < taskNum; i++) {
         Task task = new NTaskImpl(nJob.getID(), i, nJob.eventHandler);
         nJob.addTask(task);
@@ -156,7 +156,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
           ERROR_TRANSITION)
 
       //Transitions from STARTED
-      //STARTED -> (SUCCEED,FAILED): CompleteTransition
+      //STARTED -> (STARTED,SUCCEED,FAILED): CompleteTransition
       .addTransition(JobState.STARTED,
           EnumSet.of(JobState.STARTED,JobState.SUCCEED, JobState.FAILED),
           JobEventType.JOB_COMPLETED,

@@ -4,10 +4,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.applications.narwhal.NAppMaster;
-import org.apache.hadoop.yarn.applications.narwhal.event.ContainerLauncherEvent;
-import org.apache.hadoop.yarn.applications.narwhal.event.TaskEvent;
-import org.apache.hadoop.yarn.applications.narwhal.event.TaskEventType;
+import org.apache.hadoop.yarn.applications.narwhal.event.*;
+import org.apache.hadoop.yarn.applications.narwhal.task.ExecutorID;
 import org.apache.hadoop.yarn.applications.narwhal.task.TaskId;
+import org.apache.hadoop.yarn.applications.narwhal.worker.WorkerId;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -28,13 +28,13 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
 
   private NMClientAsync.CallbackHandler launchListener;
 
-  private ConcurrentHashMap<ContainerId, TaskId> scheduledContainers =
+  private ConcurrentHashMap<ContainerId, ExecutorID> scheduledContainers =
       new ConcurrentHashMap<>();
 
-  private ConcurrentHashMap<ContainerId, TaskId> startdContainers =
+  private ConcurrentHashMap<ContainerId, ExecutorID> startdContainers =
       new ConcurrentHashMap<>();
 
-  private ConcurrentHashMap<ContainerId, TaskId> stoppedContainers =
+  private ConcurrentHashMap<ContainerId, ExecutorID> stoppedContainers =
       new ConcurrentHashMap<>();
 
   public ContainerLauncher(NAppMaster.AppContext context) {
@@ -136,9 +136,13 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
       Iterator<ContainerId> it = startdContainers.keySet().iterator();
       while (it.hasNext()) {
         ContainerId startedContainerId = it.next();
-        TaskId taskId = startdContainers.get(startedContainerId);
+        ExecutorID id = startdContainers.get(startedContainerId);
         if (startedContainerId.equals(containerId)) {
-          eventHandler.handle(new TaskEvent(taskId, TaskEventType.TASK_COMPLETED));
+          if (id instanceof TaskId) {
+            eventHandler.handle(new TaskEvent((TaskId)id, TaskEventType.TASK_COMPLETED));
+          } else if (id instanceof WorkerId) {
+            eventHandler.handle(new WorkerEvent((WorkerId)id, WorkerEventType.WORKER_COMPLETED));
+          }
           //remove from startedContainer list
           it.remove();
         }
