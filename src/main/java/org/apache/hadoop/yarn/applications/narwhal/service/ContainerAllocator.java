@@ -63,6 +63,17 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     super(context);
   }
 
+  //TODO
+  public void stopContainers() {
+
+  }
+
+  @Override
+  public void stop() {
+    stopContainers();
+    amRMClientAsync.stop();
+  }
+
   @Override
   public void processEvent(AbstractEvent event) {
     ContainerAllocatorEvent CAEvent = (ContainerAllocatorEvent)event;

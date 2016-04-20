@@ -61,6 +61,7 @@ public abstract class EventLoop {
     startClientAsync();
   }
 
+  public abstract void stop();
   public abstract void processEvent(AbstractEvent event);
   public abstract void startClientAsync();
 }

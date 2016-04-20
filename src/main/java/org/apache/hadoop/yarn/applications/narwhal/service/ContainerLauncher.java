@@ -41,6 +41,17 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
     super(context);
   }
 
+  //TODO
+  public void stopContainers() {
+
+  }
+
+  @Override
+  public void stop() {
+    stopContainers();
+    nmClientAsync.stop();
+  }
+
   @Override
   public void handle(ContainerLauncherEvent containerLauncherEvent) {
     try {
@@ -120,33 +131,43 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
           it.remove();
 
           //fake code
-          launchListener.onContainerStopped(containerId);
+          ContainerStatus containerStatus = ContainerStatus.newInstance(containerId,ContainerState.COMPLETE,"",0);
+          launchListener.onContainerStatusReceived(containerId, containerStatus);
         }
       }
     }
 
-    @Override
-    public void onContainerStatusReceived(ContainerId containerId, ContainerStatus containerStatus) {
-
-    }
-
-    @Override
-    public void onContainerStopped(ContainerId containerId) {
-      LOG.info("Container stopped");
+    public void postExecutorCompleteEvent(ContainerId containerId, ContainerStatus containerStatus) {
       Iterator<ContainerId> it = startdContainers.keySet().iterator();
       while (it.hasNext()) {
         ContainerId startedContainerId = it.next();
         ExecutorID id = startdContainers.get(startedContainerId);
         if (startedContainerId.equals(containerId)) {
           if (id instanceof TaskId) {
-            eventHandler.handle(new TaskEvent((TaskId)id, TaskEventType.TASK_COMPLETED));
+            TaskEvent taskEvent = new TaskEvent((TaskId) id, TaskEventType.TASK_COMPLETED);
+            taskEvent.setContainerStatus(containerStatus);
+            eventHandler.handle(taskEvent);
           } else if (id instanceof WorkerId) {
-            eventHandler.handle(new WorkerEvent((WorkerId)id, WorkerEventType.WORKER_COMPLETED));
+            WorkerEvent workerEvent = new WorkerEvent((WorkerId)id, WorkerEventType.WORKER_COMPLETED);
+            workerEvent.setContainerStatus(containerStatus);
+            eventHandler.handle(workerEvent);
           }
           //remove from startedContainer list
           it.remove();
         }
       }
+    }
+
+    @Override
+    public void onContainerStatusReceived(ContainerId containerId, ContainerStatus containerStatus) {
+      if (containerStatus.getState().equals(ContainerState.COMPLETE)) {
+        postExecutorCompleteEvent(containerId, containerStatus);
+      }
+    }
+
+    @Override
+    public void onContainerStopped(ContainerId containerId) {
+      LOG.info("Container stopped");
     }
 
     @Override

@@ -170,6 +170,8 @@ public class NAppMaster {
   }
 
   public void stop() {
+    containerAllocator.stop();
+    containerLauncher.stop();
     ((AbstractService)dispatcher).stop();
   }
 
