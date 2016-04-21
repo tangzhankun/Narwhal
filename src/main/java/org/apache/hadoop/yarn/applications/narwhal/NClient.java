@@ -230,32 +230,6 @@ public class NClient {
 		}
 		return config;
 	}
-	
-//	private void saveConfigFileToHdfs(String configFileContent){
-//		NarwhalConfigBuilder builder = new NarwhalConfigBuilder();
-//		FileOutputStream fileOutputStream = null;
-//		ObjectOutputStream objectOutputStream = null;
-//		try {
-//			new NarwhalConfigParser(builder).parse(configFileContent);
-//			NarwhalConfig config = builder.build();
-//			
-//			fileOutputStream = new FileOutputStream(configFilePath);
-//			objectOutputStream = new ObjectOutputStream(fileOutputStream);
-//			objectOutputStream.writeObject(config);
-//			
-////			addToLocalResources(fs, configFilePath, configFileContent, configFileContent, null, configFileContent);
-//			
-//		} catch (BuilderException | JSONException | IOException e) {
-//			// TODO
-//		} finally {
-//			try {
-//				objectOutputStream.close();
-//				objectOutputStream.close();
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//	}
 
 	private String readConfigFileContent(String path) {
 
