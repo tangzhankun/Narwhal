@@ -6,7 +6,7 @@ Narwhal is a YARN application for Docker container orchestration for YARN.
 
 ## Roadmap
 
-- [] a
+- [ ] a
 
 ## Setting up and running Narwhal
 
