@@ -169,25 +169,6 @@ public class NAppMaster {
 
     return true;
   }
-  
-  private void deserializeNarwhalConfig(String path){
-	  FileInputStream fileInputStream = null;
-	  ObjectInputStream objectInputStream = null;
-	  try {
-		  fileInputStream = new FileInputStream(path);
-		  objectInputStream = new ObjectInputStream(fileInputStream);
-		  narwhalConfig = (NarwhalConfig) objectInputStream.readObject();
-	  } catch (IOException | ClassNotFoundException e) {
-		  e.printStackTrace();
-	  } finally {
-		  try {
-			  fileInputStream.close();
-			  objectInputStream.close();
-		  } catch (IOException e) {
-			  e.printStackTrace();
-		  }
-	  }
-  }
 
   public void init(String[] args) throws ParseException {
     parseOptions(args);
