@@ -68,8 +68,8 @@ public class NClient {
 
   private int amPriority = 0;
   private String amQueue = "default";
-  private int amMemory = 10;
-  private int amVCores = 1;
+  private int amMemory = 2048;
+  private int amVCores = 2;
 
   public NClient() {
     this(new YarnConfiguration());

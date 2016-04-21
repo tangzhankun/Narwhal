@@ -100,6 +100,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     try {
       RegisterApplicationMasterResponse response = amRMClientAsync.registerApplicationMaster(
         hostname,-1,"");
+      LOG.info("Narwhal AM registered: " + hostname);
     } catch (YarnException e) {
       e.printStackTrace();
     } catch (IOException e) {
@@ -111,6 +112,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
   public void unregisterAM(FinalApplicationStatus appStatus, String msg, String appTrackingUrl) {
     try {
       amRMClientAsync.unregisterApplicationMaster(appStatus, msg, appTrackingUrl);
+      LOG.info("Narwhal AM unregistered");
     } catch (YarnException e) {
       e.printStackTrace();
     } catch (IOException e) {
