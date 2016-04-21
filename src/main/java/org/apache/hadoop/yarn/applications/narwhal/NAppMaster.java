@@ -177,13 +177,29 @@ public class NAppMaster {
 
   public boolean finish() throws InterruptedException {
     NJobImpl nJob = (NJobImpl)job;
+    FinalApplicationStatus appStatus = FinalApplicationStatus.UNDEFINED;
+    String msg = "";
+    boolean shouldExit = false;
+    boolean result = false;
     while (true) {
       JobState state = nJob.getStatus();
-      if (state == JobState.ERROR |
-          state == JobState.FAILED |
-          state == JobState.SUCCEED) {
+      if (state == JobState.SUCCEED) {
+        appStatus = FinalApplicationStatus.SUCCEEDED;
+        msg = "Narwhal succeeded with " + nJob.getTasks().size() + " tasks";
+        result = true;
+        shouldExit = true;
+      } else if (state == JobState.ERROR |
+          state == JobState.FAILED) {
+        appStatus = FinalApplicationStatus.FAILED;
+        msg = "Narwhal failed";
+        result = false;
+        shouldExit = true;
+      }
+      if (shouldExit) {
+        containerAllocator.unregisterAM(appStatus, msg, "");
+        LOG.info(msg);
         stop();
-        return state == JobState.SUCCEED;
+        return result;
       }
       Thread.sleep(5000);
     }
