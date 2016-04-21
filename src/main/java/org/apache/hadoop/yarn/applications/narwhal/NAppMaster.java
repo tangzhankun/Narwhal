@@ -33,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The Narwhal Application Master
@@ -147,6 +148,7 @@ public class NAppMaster {
 
   private boolean parseOptions(String[] args) throws ParseException {
     Map<String, String> envs = System.getenv();
+    
     ContainerId containerId = ContainerId.fromString(
         envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
     applicationAttemptId = containerId.getApplicationAttemptId();
@@ -163,7 +165,6 @@ public class NAppMaster {
     
     CommandLine cliParser = new GnuParser().parse(opts, args);
     
-    new HelpFormatter().printHelp("NAppMaster", opts);
     LOG.info("<----appname : "+ cliParser.getOptionValue("appname") + "---->");
 
     return true;

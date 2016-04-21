@@ -114,7 +114,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>org.apache.hadoop.yarn.applications.narwhal.NAppMaster</mainClass>
+							<mainClass>org.apache.hadoop.yarn.applications.narwhal.NClient</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
