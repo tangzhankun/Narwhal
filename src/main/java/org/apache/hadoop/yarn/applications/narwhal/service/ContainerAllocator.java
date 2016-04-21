@@ -3,6 +3,8 @@ package org.apache.hadoop.yarn.applications.narwhal.service;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.applications.narwhal.NAppMaster;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
@@ -12,8 +14,10 @@ import org.apache.hadoop.yarn.applications.narwhal.worker.WorkerId;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -89,8 +93,29 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
   }
 
   @Override
-  public void startClientAsync() {
+  public void startClientAsync(){
     createAMRMClientAsync().start();
+    //register with RM
+    String hostname = NetUtils.getHostname();
+    try {
+      RegisterApplicationMasterResponse response = amRMClientAsync.registerApplicationMaster(
+        hostname,-1,"");
+    } catch (YarnException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+  }
+
+  public void unregisterAM(FinalApplicationStatus appStatus, String msg, String appTrackingUrl) {
+    try {
+      amRMClientAsync.unregisterApplicationMaster(appStatus, msg, appTrackingUrl);
+    } catch (YarnException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   private void setupAndAddContainer(ContainerAllocatorEvent event) {
