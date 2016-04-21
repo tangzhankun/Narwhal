@@ -160,8 +160,8 @@ public class NClient {
 		vargs.add(Environment.JAVA_HOME.$$() + "/bin/java");
 		vargs.add(appMasterMainClass);
 		vargs.add("--appname " + narwhalConfig.getName());
-		vargs.add("--container_memory" + narwhalConfig.getMem());
-		vargs.add("--container_vcores" + narwhalConfig.getCpus());
+		vargs.add("--container_memory " + narwhalConfig.getMem());
+		vargs.add("--container_vcores " + narwhalConfig.getCpus());
 		vargs.add("--instances_num " + narwhalConfig.getInstances());
 		vargs.add("--command " + narwhalConfig.getCmd());
 		vargs.add("--image " + narwhalConfig.getImage());
