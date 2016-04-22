@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+  <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.apache.hadoop</groupId>
-    <artifactId>narwhal</artifactId>
-    <version>1.0-SNAPSHOT</version>
+  <groupId>org.apache.hadoop</groupId>
+  <artifactId>narwhal</artifactId>
+  <version>1.0-SNAPSHOT</version>
 
-    <properties><hadoop.version>2.7.2</hadoop.version></properties>
-    <dependencies>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-common</artifactId>
-          <version>${hadoop.version}</version>
-          <!--<scope>provided</scope>-->
-        </dependency>
+  <properties>
+    <hadoop.version>2.7.2</hadoop.version>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <version>${hadoop.version}</version>
+      <!--<scope>provided</scope> -->
+    </dependency>
 
     <dependency>
       <groupId>junit</groupId>
@@ -74,19 +75,46 @@
       <artifactId>hadoop-yarn-client</artifactId>
       <version>${hadoop.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <type>test-jar</type>
+      <version>${hadoop.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-server-nodemanager</artifactId>
+      <version>${hadoop.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
+      <version>${hadoop.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-server-tests</artifactId>
+      <type>test-jar</type>
+      <version>${hadoop.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
-	<groupId>org.apache.maven.plugins</groupId>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
-           <archive>
-             <manifest>
-               <mainClass>org.apache.hadoop.yarn.applications.narwhal.NAppMaster</mainClass>
-             </manifest>
-           </archive>
+          <archive>
+            <manifest>
+              <mainClass>org.apache.hadoop.yarn.applications.narwhal.NClient</mainClass>
+            </manifest>
+          </archive>
         </configuration>
       </plugin>
       <plugin>
@@ -96,7 +124,7 @@
           <source>1.7</source>
           <target>1.7</target>
         </configuration>
-      </plugin> 
+      </plugin>
     </plugins>
   </build>
 

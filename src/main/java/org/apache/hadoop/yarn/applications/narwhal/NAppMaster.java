@@ -1,12 +1,18 @@
 package org.apache.hadoop.yarn.applications.narwhal;
 
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
+import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfig;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.JobEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.TaskEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.WorkerEventDispatcher;
@@ -23,7 +29,11 @@ import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.log4j.LogManager;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The Narwhal Application Master
@@ -41,7 +51,7 @@ public class NAppMaster {
   private ContainerLauncher containerLauncher;
   private Job job;
   protected ApplicationAttemptId applicationAttemptId;
-
+  protected NarwhalConfig narwhalConfig;
 
   public class AppContext{
     private final Configuration conf;
@@ -125,27 +135,44 @@ public class NAppMaster {
   }
 
   protected void createJob() {
-
-    job = new NJobImpl("Narwhal job", "appattempt_1458598848952_0028_000002", conf, context.getEventHandler());
+    job = new NJobImpl("Narwhal job", applicationAttemptId.toString(), conf, context.getEventHandler());
     //init job event
-    jobEventDispatcher.handle(new JobEvent(job.getID(), JobEventType.JOB_INIT));
+    JobEvent jobEvent = new JobEvent(job.getID(), JobEventType.JOB_INIT);
+    jobEvent.setNarwhalConfig(narwhalConfig);
+    jobEventDispatcher.handle(jobEvent);
   }
 
   protected void kickOffTheBall() {
     JobEvent startJobEvent = new JobEvent(job.getID(), JobEventType.JOB_START);
+    startJobEvent.setNarwhalConfig(narwhalConfig);
     dispatcher.getEventHandler().handle(startJobEvent);
   }
 
-  private boolean parseOptions(String[] args) {
+  private boolean parseOptions(String[] args) throws ParseException {
     Map<String, String> envs = System.getenv();
+    
     ContainerId containerId = ContainerId.fromString(
         envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
     applicationAttemptId = containerId.getApplicationAttemptId();
     LOG.info("applicationAttemptId: " + applicationAttemptId);
+    
+    Options opts = new Options();
+    opts.addOption("appname", true, "specify application name. ");
+    opts.addOption("container_memory", true, "specify container memory. ");
+    opts.addOption("container_vcores", true, "specify container vcores. ");
+    opts.addOption("instances_num", true, "specify instance number. ");
+    opts.addOption("command", true, "specify command. ");
+    opts.addOption("image", true, "specify image. ");
+    opts.addOption("local", true, "specify local. ");
+    
+    CommandLine cliParser = new GnuParser().parse(opts, args);
+    
+    LOG.info("<----appname : "+ cliParser.getOptionValue("appname") + "---->");
+
     return true;
   }
 
-  public void init(String[] args) {
+  public void init(String[] args) throws ParseException {
     parseOptions(args);
     createDispatcher();
     startDispatcher();
@@ -170,20 +197,38 @@ public class NAppMaster {
   }
 
   public void stop() {
-    containerAllocator.stop();
+    //nmClientAsync must first stop or
+    //amRMClientAsync will report a "Interrupted while waiting for queue" error
     containerLauncher.stop();
+    containerAllocator.stop();
     ((AbstractService)dispatcher).stop();
   }
 
   public boolean finish() throws InterruptedException {
     NJobImpl nJob = (NJobImpl)job;
+    FinalApplicationStatus appStatus = FinalApplicationStatus.UNDEFINED;
+    String msg = "";
+    boolean shouldExit = false;
+    boolean result = false;
     while (true) {
       JobState state = nJob.getStatus();
-      if (state == JobState.ERROR |
-          state == JobState.FAILED |
-          state == JobState.SUCCEED) {
+      if (state == JobState.SUCCEED) {
+        appStatus = FinalApplicationStatus.SUCCEEDED;
+        msg = "Narwhal succeeded with " + nJob.getTasks().size() + " tasks";
+        result = true;
+        shouldExit = true;
+      } else if (state == JobState.ERROR |
+          state == JobState.FAILED) {
+        appStatus = FinalApplicationStatus.FAILED;
+        msg = "Narwhal failed";
+        result = false;
+        shouldExit = true;
+      }
+      if (shouldExit) {
+        containerAllocator.unregisterAM(appStatus, msg, "");
+        LOG.info(msg);
         stop();
-        return state == JobState.SUCCEED;
+        return result;
       }
       Thread.sleep(5000);
     }

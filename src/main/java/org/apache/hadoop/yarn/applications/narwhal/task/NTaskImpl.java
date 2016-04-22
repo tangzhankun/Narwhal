@@ -2,6 +2,9 @@ package org.apache.hadoop.yarn.applications.narwhal.task;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.state.TaskState;
 import org.apache.hadoop.yarn.applications.narwhal.job.JobId;
@@ -35,11 +38,32 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
   private Lock readLock;
   private Lock writeLock;
 
+  private Container container;
+
+  //task config info
+  private String userCmd;
+  private int mem;
+  private int cpu;
+  private int pri;
+  private boolean isUsingLocalImage;
+
   private LinkedHashMap<WorkerId, Worker> workers = new LinkedHashMap<>();
   private final EventHandler eventHandler;
 
   private final StateMachine<TaskState, TaskEventType, TaskEvent> stateMachine;
 
+  public String getUserCmd() {
+    return userCmd;
+  }
+
+  public void setContainer(Container container) {
+    LOG.info(getID() + " got container:" + container.getId());
+    this.container = container;
+  }
+
+  public Container getContainer() {
+    return container;
+  }
   //not sure if this is useful
   private static final ErrorTransition ERROR_TRANSITION =
       new ErrorTransition();
@@ -47,13 +71,19 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
   private static final KillTransition KILL_TRANSITION =
       new KillTransition();
 
-  public NTaskImpl(JobId jobId, int id, EventHandler eventHandler) {
+  public NTaskImpl(JobId jobId, int id, EventHandler eventHandler,
+                   String userCmd, int cpu, int mem, int pri, boolean useLocalImage) {
     this.eventHandler = eventHandler;
     this.taskId = new TaskId(jobId, id);
     this.stateMachine = stateMachineFactory.make(this);
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
+    this.userCmd = userCmd;
+    this.mem = mem;
+    this.cpu = cpu;
+    this.pri = pri;
+    this.isUsingLocalImage = useLocalImage;
   }
 
   private static class ErrorTransition implements
@@ -72,8 +102,13 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     public void transition(NTaskImpl nTask, TaskEvent taskEvent) {
       LOG.info("**TaskScheduleTransition**");
       //post an event to ContainerAllocator for allocate container
-      nTask.eventHandler.handle(new ContainerAllocatorEvent(nTask.getID(),
-          ContainerAllocatorEventType.CONTAINERALLOCATOR_REQEUST));
+      ContainerAllocatorEvent containerAllocatorEvent = new ContainerAllocatorEvent(nTask.getID(),
+          ContainerAllocatorEventType.CONTAINERALLOCATOR_REQEUST);
+      Resource capability = Resource.newInstance(nTask.getMem(),nTask.getCpu());
+      containerAllocatorEvent.setCapability(capability);
+      containerAllocatorEvent.setPriority(nTask.getPri());
+      containerAllocatorEvent.setHostname("");
+      nTask.eventHandler.handle(containerAllocatorEvent);
     }
   }
 
@@ -92,31 +127,43 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     @Override
     public TaskState transition(NTaskImpl nTask, TaskEvent taskEvent) {
       LOG.info("**TaskSetupTransition**");
+      //task should save this container if not null
+      //because the taskEvent without container is posted from worker
+      if (taskEvent.getContainer() != null) {
+        nTask.setContainer(taskEvent.getContainer());
+      }
       //if need to load image file , new a worker and post event to run it
       //when worker succeed in loading image, post a TASK_LAUNCH event
-      boolean local = true;
-      if (local) {
+      if (nTask.isUsingLocalImage) {
         if (currentWorkerSucceed(nTask)) {
+          LOG.info("All " + nTask.getID() + " 's worker finished");
           nTask.workers.clear();
-          nTask.eventHandler.handle(new TaskEvent(taskEvent.getTaskID(),
-              TaskEventType.TASK_LAUNCH));
+          TaskEvent event = new TaskEvent(taskEvent.getTaskID(),
+              TaskEventType.TASK_LAUNCH);
+          event.setContainer(nTask.getContainer());
+          nTask.eventHandler.handle(event);
           return TaskState.READY;
         }
-        LOG.info("new Worker");
+        LOG.info("** new Worker **");
         String hostname = taskEvent.getContainer().getNodeId().getHost();
+        //TODO: this should be docker load image file
+        String workerCmd = "docker images";
         NWorkerImpl worker = new NWorkerImpl(taskEvent.getTaskID(), 0,
-            nTask.eventHandler, hostname);
+            nTask.eventHandler, hostname, workerCmd);
         nTask.eventHandler.handle(new WorkerEvent(worker.getID(),
             WorkerEventType.WORKER_SCHEDULE));
         nTask.addWorker(worker);
         //state unchanged, wait for worker succeed here
         return TaskState.SCHEDULED;
       } else {
-        nTask.eventHandler.handle(new TaskEvent(taskEvent.getTaskID(),
-            TaskEventType.TASK_LAUNCH));
+        TaskEvent event = new TaskEvent(taskEvent.getTaskID(),
+            TaskEventType.TASK_LAUNCH);
+        event.setContainer(nTask.getContainer());
+        nTask.eventHandler.handle(event);
         return TaskState.READY;
       }
     }
+    //TODO: zhankun, use counter to check this to avoid multiple worker issue
     public boolean currentWorkerSucceed(NTaskImpl nTask) {
       if (nTask.workers.size() == 0) {
         return false;
@@ -138,9 +185,11 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     public void transition(NTaskImpl nTask, TaskEvent taskEvent) {
       LOG.info("**TaskLaunchTransition**");
       //post event to containerLauncher to launch the container
-      nTask.eventHandler.handle(new ContainerLauncherEvent(taskEvent.getTaskID(),
+      ContainerLauncherEvent containerLauncherEvent = new ContainerLauncherEvent(taskEvent.getTaskID(),
           taskEvent.getContainer(),
-          ContainerLauncherEventType.CONATAINERLAUNCHER_LAUNCH));
+          ContainerLauncherEventType.CONATAINERLAUNCHER_LAUNCH);
+      containerLauncherEvent.setUserCmd(nTask.getUserCmd());
+      nTask.eventHandler.handle(containerLauncherEvent);
     }
   }
 
@@ -242,4 +291,19 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     workers.put(worker.getID(), worker);
   }
 
+  public int getMem() {
+    return mem;
+  }
+
+  public int getCpu() {
+    return cpu;
+  }
+
+  public int getPri() {
+    return pri;
+  }
+
+  public boolean isUsingLocalImage() {
+    return isUsingLocalImage;
+  }
 }
