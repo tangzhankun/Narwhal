@@ -13,6 +13,8 @@ public class ContainerLauncherEvent extends AbstractEvent<ContainerLauncherEvent
 
   private Container container;
 
+  private String userCmd;
+
   public ContainerLauncherEvent(ExecutorID id, Container container,
                                 ContainerLauncherEventType type) {
     super(type);
@@ -28,4 +30,15 @@ public class ContainerLauncherEvent extends AbstractEvent<ContainerLauncherEvent
     return super.toString() + ", executorId: " + id;
   }
 
+  public Container getContainer() {
+    return container;
+  }
+
+  public String getUserCmd() {
+    return userCmd;
+  }
+
+  public void setUserCmd(String userCmd) {
+    this.userCmd = userCmd;
+  }
 }

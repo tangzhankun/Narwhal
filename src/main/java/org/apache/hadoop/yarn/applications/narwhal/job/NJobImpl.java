@@ -3,6 +3,7 @@ package org.apache.hadoop.yarn.applications.narwhal.job;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfig;
 import org.apache.hadoop.yarn.applications.narwhal.event.JobEvent;
 import org.apache.hadoop.yarn.applications.narwhal.event.JobEventType;
 import org.apache.hadoop.yarn.applications.narwhal.event.TaskEvent;
@@ -40,7 +41,6 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
   private Lock readLock;
   private Lock writeLock;
   private LinkedHashMap<TaskId, Task> tasks = new LinkedHashMap<>();
-
   private int finishedTasksCount = 0;
 
   private static final ErrorTransition ERROR_TRANSITION =
@@ -55,14 +55,17 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
     @Override
     public JobState transition(NJobImpl nJob, JobEvent jobEvent) {
       LOG.info("**JobInitTransition**");
-      createTasks(nJob);
+      createTasks(nJob, jobEvent.getNarwhalConfig());
       return JobState.INITED;
     }
 
-    private void createTasks(NJobImpl nJob) {
-      int taskNum = 2;
+    private void createTasks(NJobImpl nJob, NarwhalConfig narwhalConfig) {
+      //TODO: yuqiang, change this hardcoded lines based on narwhalConfig
+      int taskNum = 1;
       for (int i = 0; i < taskNum; i++) {
-        Task task = new NTaskImpl(nJob.getID(), i, nJob.eventHandler);
+        Task task = new NTaskImpl(nJob.getID(), i, nJob.eventHandler,
+            "sleep 10; cat /proc/1/cgroup", 1,
+            128, 0, true);
         nJob.addTask(task);
       }
       LOG.info("create " + taskNum + " tasks.");

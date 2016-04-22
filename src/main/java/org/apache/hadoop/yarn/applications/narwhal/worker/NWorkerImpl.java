@@ -2,6 +2,7 @@ package org.apache.hadoop.yarn.applications.narwhal.worker;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.state.WorkerState;
 import org.apache.hadoop.yarn.applications.narwhal.task.TaskId;
@@ -25,11 +26,17 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
   //this worker should work at this host. So it needs resource allocated from here to get things done
   private String hostname;
 
+  private String cmd;
+
   private WorkerId workerId;
 
   private Lock writeLock;
   private final EventHandler eventHandler;
   private final StateMachine<WorkerState, WorkerEventType, WorkerEvent> stateMachine;
+
+  public String getCmd() {
+    return cmd;
+  }
 
   private static class ScheduleTransition implements
       SingleArcTransition<NWorkerImpl, WorkerEvent> {
@@ -40,6 +47,10 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
       ContainerAllocatorEvent caEvent = new ContainerAllocatorEvent(nWorker.getID(),
           ContainerAllocatorEventType.CONTAINERALLOCATOR_REQEUST);
       caEvent.setHostname(nWorker.getHostname());
+      //TODO: this is hardcoded resource for worker
+      Resource capability = Resource.newInstance(64,1);
+      caEvent.setCapability(capability);
+      caEvent.setPriority(0);
       nWorker.eventHandler.handle(caEvent);
     }
   }
@@ -60,9 +71,11 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
     @Override
     public void transition(NWorkerImpl nWorker, WorkerEvent workerEvent) {
       LOG.info("**WorkerStartTransition**");
-      nWorker.eventHandler.handle(new ContainerLauncherEvent(workerEvent.getWorkerId(),
+      ContainerLauncherEvent containerLauncherEvent = new ContainerLauncherEvent(workerEvent.getWorkerId(),
           workerEvent.getContainer(),
-          ContainerLauncherEventType.CONATAINERLAUNCHER_LAUNCH));
+          ContainerLauncherEventType.CONATAINERLAUNCHER_LAUNCH);
+      containerLauncherEvent.setUserCmd(nWorker.getCmd());
+      nWorker.eventHandler.handle(containerLauncherEvent);
     }
   }
 
@@ -106,13 +119,15 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
           new CompleteTransition())
       .installTopology();
 
-  public NWorkerImpl(TaskId taskId, int id, EventHandler eventHandler, String hostname) {
+  public NWorkerImpl(TaskId taskId, int id, EventHandler eventHandler,
+                     String hostname, String cmd) {
     this.hostname = hostname;
     this.workerId = new WorkerId(taskId,id);
     this.eventHandler = eventHandler;
     this.stateMachine = stateMachineFactory.make(this);
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     this.writeLock = readWriteLock.writeLock();
+    this.cmd = cmd;
   }
 
   @Override
