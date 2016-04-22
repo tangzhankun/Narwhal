@@ -60,8 +60,6 @@ public class NClient {
   private String configFile;
   private NarwhalConfig narwhalConfig;
   private YarnClient yarnClient;
-  private Options opts;
-  // private String configFilePath = "~/tmp/" + UUID.randomUUID().toString();
 
   private static final String appMasterJarPath = "NAppMaster.jar";
   private static final String configFilePath = "artifact.json";
@@ -85,10 +83,6 @@ public class NClient {
 
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(conf);
-
-    opts = new Options();
-    opts.addOption("jar", true, "Jar file containing the application master");
-    opts.addOption("configFile", true, "specify predefined config file path");
 
   }
 
@@ -135,6 +129,20 @@ public class NClient {
       }
 
       ApplicationReport report = yarnClient.getApplicationReport(appId);
+      
+      LOG.info("Got application report from ASM for"
+          + ", appId=" + appId.getId()
+          + ", clientToAMToken=" + report.getClientToAMToken()
+          + ", appDiagnostics=" + report.getDiagnostics()
+          + ", appMasterHost=" + report.getHost()
+          + ", appQueue=" + report.getQueue()
+          + ", appMasterRpcPort=" + report.getRpcPort()
+          + ", appStartTime=" + report.getStartTime()
+          + ", yarnAppState=" + report.getYarnApplicationState().toString()
+          + ", distributedFinalState=" + report.getFinalApplicationStatus().toString()
+          + ", appTrackingUrl=" + report.getTrackingUrl()
+          + ", appUser=" + report.getUser());
+      
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       if (YarnApplicationState.FINISHED == state) {
@@ -199,25 +207,19 @@ public class NClient {
 
   public boolean init(String[] args) throws ParseException, IOException {
 
-    CommandLine cliParser = new GnuParser().parse(opts, args);
-
     if (args.length == 0) {
       throw new IllegalArgumentException("No args specified for client to initialize");
     }
 
-    if (!cliParser.hasOption("configFile")) {
-      throw new IllegalArgumentException("No config file specified");
+    if (args.length != 2) {
+      throw new IllegalArgumentException("error arguments. e.g. yarn jar Narwhal.jar configFilePath NarwhalAppMasterJarFilePath");
     }
-
-    configFile = cliParser.getOptionValue("configFile");
-    String configFileContent = readConfigFileContent(configFilePath);
+    
+    configFile = args[0];
+    appMasterJar = args[1];
+    
+    String configFileContent = readConfigFileContent(configFile);
     narwhalConfig = parseConfigFile(configFileContent);
-
-    if (!cliParser.hasOption("jar")) {
-      throw new IllegalArgumentException("No jar file specified for application master");
-    }
-
-    appMasterJar = cliParser.getOptionValue("jar");
 
     return true;
   }
