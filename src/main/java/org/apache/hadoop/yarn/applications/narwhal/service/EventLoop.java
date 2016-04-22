@@ -27,7 +27,7 @@ public abstract class EventLoop {
   protected EventHandler eventHandler;
   protected Job job;
   protected BlockingQueue<AbstractEvent> eventQueue
-      = new LinkedBlockingDeque<AbstractEvent>();
+      = new LinkedBlockingDeque<>();
 
   public EventLoop(NAppMaster.AppContext context) {
     this.stopped = new AtomicBoolean(false);

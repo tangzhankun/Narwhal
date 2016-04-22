@@ -135,14 +135,16 @@ public class NAppMaster {
   }
 
   protected void createJob() {
-
-    job = new NJobImpl("Narwhal job", "appattempt_1458598848952_0028_000002", conf, context.getEventHandler());
+    job = new NJobImpl("Narwhal job", applicationAttemptId.toString(), conf, context.getEventHandler());
     //init job event
-    jobEventDispatcher.handle(new JobEvent(job.getID(), JobEventType.JOB_INIT));
+    JobEvent jobEvent = new JobEvent(job.getID(), JobEventType.JOB_INIT);
+    jobEvent.setNarwhalConfig(narwhalConfig);
+    jobEventDispatcher.handle(jobEvent);
   }
 
   protected void kickOffTheBall() {
     JobEvent startJobEvent = new JobEvent(job.getID(), JobEventType.JOB_START);
+    startJobEvent.setNarwhalConfig(narwhalConfig);
     dispatcher.getEventHandler().handle(startJobEvent);
   }
 
@@ -195,8 +197,10 @@ public class NAppMaster {
   }
 
   public void stop() {
-    containerAllocator.stop();
+    //nmClientAsync must first stop or
+    //amRMClientAsync will report a "Interrupted while waiting for queue" error
     containerLauncher.stop();
+    containerAllocator.stop();
     ((AbstractService)dispatcher).stop();
   }
 
