@@ -61,10 +61,10 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
 
     private void createTasks(NJobImpl nJob, NarwhalConfig narwhalConfig) {
       //TODO: yuqiang, change this hardcoded lines based on narwhalConfig
-      int taskNum = 1;
+      int taskNum = 2;
       for (int i = 0; i < taskNum; i++) {
         Task task = new NTaskImpl(nJob.getID(), i, nJob.eventHandler,
-            "sleep 10; cat /proc/1/cgroup", 1,
+            "sleep 30; cat /proc/1/cgroup", 1,
             128, 0, true);
         nJob.addTask(task);
       }
