@@ -163,7 +163,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     public void onContainersCompleted(List<ContainerStatus> list) {
       for (ContainerStatus containerStatus : list) {
         LOG.info("ContainerStatus for containerID: " + containerStatus.getContainerId() +
-        ", state: " + containerStatus.getState() + ", existCode: " + containerStatus.getExitStatus());
+        ", state: " + containerStatus.getState() + ", exitCode: " + containerStatus.getExitStatus());
         if (containerStatus.getState().equals(ContainerState.COMPLETE)) {
           postExecutorCompleteEvent(containerStatus.getContainerId(), containerStatus);
         }
@@ -173,7 +173,14 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
     @Override
     public void onContainersAllocated(List<Container> list) {
-      //assign containers to tasks
+      if (pendingTasks.size() == 0) {
+        LOG.info("No container request in pending queue, so skip these container:");
+        for (Container allocatedContainer : list) {
+          LOG.info("Got " + allocatedContainer.getId() + " from RM, weired");
+        }
+        return;
+      }
+      //TODO: Zhankun. no assign policy now, just FIFO. should check the resource/node label and then assign containers to tasks
       for (Container allocatedContainer : list) {
         ExecutorID id = pendingTasks.get(0);
         id.setContainerId(allocatedContainer.getId());
