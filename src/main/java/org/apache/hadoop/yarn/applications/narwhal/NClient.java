@@ -135,6 +135,11 @@ public class NClient {
       }
 
       ApplicationReport report = yarnClient.getApplicationReport(appId);
+      LOG.info("Got application report from ASM for"
+          + ", appId=" + appId.getId()
+          + ", appDiagnostics=" + report.getDiagnostics()
+          + ", appQueue=" + report.getQueue()
+          + ", progress= " + report.getProgress()*100 + "%");
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       if (YarnApplicationState.FINISHED == state) {

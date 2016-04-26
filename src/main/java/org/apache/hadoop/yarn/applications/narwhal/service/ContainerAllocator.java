@@ -35,6 +35,8 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
   private ConcurrentHashMap<ContainerId, ExecutorID> startedContainers =
       new ConcurrentHashMap<>();
 
+  private int allocatedContainerNum = 0;
+  private int completedCounterNum = 0;
   @Override
   public void handle(ContainerAllocatorEvent containerAllocatorEvent) {
     try {
@@ -166,6 +168,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
         ", state: " + containerStatus.getState() + ", exitCode: " + containerStatus.getExitStatus());
         if (containerStatus.getState().equals(ContainerState.COMPLETE)) {
           postExecutorCompleteEvent(containerStatus.getContainerId(), containerStatus);
+          completedCounterNum++;
         }
       }
 
@@ -175,6 +178,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     public void onContainersAllocated(List<Container> list) {
       if (pendingTasks.size() == 0) {
         LOG.info("No container request in pending queue, so skip these container:");
+        //TODO: zhankun, we should cancel/release this container
         for (Container allocatedContainer : list) {
           LOG.info("Got " + allocatedContainer.getId() + " from RM, weired");
         }
@@ -199,6 +203,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
           eventHandler.handle(workerEvent);
         }
         pendingTasks.remove(0);
+        allocatedContainerNum++;
       }
     }
 
@@ -214,7 +219,10 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
     @Override
     public float getProgress() {
-      return 0;
+      if (allocatedContainerNum == 0) {
+        return 0;
+      }
+      return (float)(completedCounterNum)/(float)allocatedContainerNum;
     }
 
     @Override
