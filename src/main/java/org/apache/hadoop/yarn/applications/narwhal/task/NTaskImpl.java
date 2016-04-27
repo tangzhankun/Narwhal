@@ -45,6 +45,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
   private int mem;
   private int cpu;
   private int pri;
+  private String imageName;
   private boolean isUsingLocalImage;
 
   private LinkedHashMap<WorkerId, Worker> workers = new LinkedHashMap<>();
@@ -54,6 +55,10 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
   public String getUserCmd() {
     return userCmd;
+  }
+
+  public String getImageName() {
+    return imageName;
   }
 
   public void setContainer(Container container) {
@@ -72,7 +77,8 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
       new KillTransition();
 
   public NTaskImpl(JobId jobId, int id, EventHandler eventHandler,
-                   String userCmd, int cpu, int mem, int pri, boolean useLocalImage) {
+                   String userCmd, int cpu, int mem, int pri,
+                   String imageName, boolean useLocalImage) {
     this.eventHandler = eventHandler;
     this.taskId = new TaskId(jobId, id);
     this.stateMachine = stateMachineFactory.make(this);
@@ -84,6 +90,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     this.cpu = cpu;
     this.pri = pri;
     this.isUsingLocalImage = useLocalImage;
+    this.imageName = imageName;
   }
 
   private static class ErrorTransition implements
@@ -189,6 +196,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
           taskEvent.getContainer(),
           ContainerLauncherEventType.CONATAINERLAUNCHER_LAUNCH);
       containerLauncherEvent.setUserCmd(nTask.getUserCmd());
+      containerLauncherEvent.setDockerImageName(nTask.getImageName());
       nTask.eventHandler.handle(containerLauncherEvent);
     }
   }
