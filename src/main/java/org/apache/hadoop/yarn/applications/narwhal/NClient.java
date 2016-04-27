@@ -1,12 +1,15 @@
 package org.apache.hadoop.yarn.applications.narwhal;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.cli.CommandLine;
@@ -91,6 +94,18 @@ public class NClient {
     opts.addOption("configFile", true, "specify predefined config file path");
 
   }
+  
+  public String serializeObj(ApplicationId appId, NarwhalConfig config){
+    String confPath = "/tmp/" +appId.toString() + "_" + UUID.randomUUID().toString();
+    try{
+      ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(confPath));
+      oos.writeObject(config);
+      oos.close();
+    }catch (IOException e) {
+      e.printStackTrace();
+    }
+    return confPath;
+  }
 
   public boolean run() throws YarnException, IOException {
 
@@ -107,6 +122,7 @@ public class NClient {
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     FileSystem fs = FileSystem.get(conf);
     addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(), localResources, null);
+    configFile = serializeObj(appId, narwhalConfig);
     addToLocalResources(fs, configFile, configFilePath, appId.toString(), localResources, null);
 
     Map<String, String> env = prepareEnv();
@@ -167,12 +183,6 @@ public class NClient {
     vargs.add(Environment.JAVA_HOME.$$() + "/bin/java");
     vargs.add(appMasterMainClass);
     vargs.add("--appname " + narwhalConfig.getName());
-    vargs.add("--container_memory " + narwhalConfig.getMem());
-    vargs.add("--container_vcores " + narwhalConfig.getCpus());
-    vargs.add("--instances_num " + narwhalConfig.getInstances());
-    vargs.add("--command " + narwhalConfig.getCmd());
-    vargs.add("--image " + narwhalConfig.getImage());
-    vargs.add("--local " + narwhalConfig.isLocal());
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
             + "/AppMaster.stdout");
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
@@ -215,7 +225,7 @@ public class NClient {
     }
 
     configFile = cliParser.getOptionValue("configFile");
-    String configFileContent = readConfigFileContent(configFilePath);
+    String configFileContent = readConfigFileContent(configFile);
     narwhalConfig = parseConfigFile(configFileContent);
 
     if (!cliParser.hasOption("jar")) {

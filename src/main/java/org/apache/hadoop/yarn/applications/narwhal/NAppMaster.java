@@ -9,6 +9,8 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
@@ -34,6 +36,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * The Narwhal Application Master
@@ -52,6 +55,7 @@ public class NAppMaster {
   private Job job;
   protected ApplicationAttemptId applicationAttemptId;
   protected NarwhalConfig narwhalConfig;
+  private static final String configFilePath = "artifact.json";
 
   public class AppContext{
     private final Configuration conf;
@@ -148,31 +152,29 @@ public class NAppMaster {
     dispatcher.getEventHandler().handle(startJobEvent);
   }
 
-  private boolean parseOptions(String[] args) throws ParseException {
+  private boolean parseOptions(String[] args) throws ParseException, IOException {
     Map<String, String> envs = System.getenv();
     
     ContainerId containerId = ContainerId.fromString(
         envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
     applicationAttemptId = containerId.getApplicationAttemptId();
+    ApplicationId appId = applicationAttemptId.getApplicationId();
     LOG.info("applicationAttemptId: " + applicationAttemptId);
     
     Options opts = new Options();
-    opts.addOption("appname", true, "specify application name. ");
-    opts.addOption("container_memory", true, "specify container memory. ");
-    opts.addOption("container_vcores", true, "specify container vcores. ");
-    opts.addOption("instances_num", true, "specify instance number. ");
-    opts.addOption("command", true, "specify command. ");
-    opts.addOption("image", true, "specify image. ");
-    opts.addOption("local", true, "specify local. ");
-    
+    opts.addOption("appname", true, "specify application name. ");  
     CommandLine cliParser = new GnuParser().parse(opts, args);
     
-    LOG.info("<----appname : "+ cliParser.getOptionValue("appname") + "---->");
-
+    String appName = cliParser.getOptionValue("appname");
+    String configPath = getFromLocalResources(appName,  appId.toString());
+    narwhalConfig = deserializeObj(configPath);
+    LOG.info("<----config file path : "+ configPath+ "---->");
+    LOG.info("<----appname : "+ narwhalConfig.getName() + "---->");
+    
     return true;
   }
 
-  public void init(String[] args) throws ParseException {
+  public void init(String[] args) throws ParseException, IOException {
     parseOptions(args);
     createDispatcher();
     startDispatcher();
@@ -232,6 +234,29 @@ public class NAppMaster {
       }
       Thread.sleep(5000);
     }
+  }
+  
+  private String getFromLocalResources(String appName, String appId) throws IOException{
+    FileSystem fs = FileSystem.get(conf);
+
+    String suffix = appName + "/" + appId +"/" +configFilePath;
+    Path src = new Path(fs.getHomeDirectory(), suffix);
+    String dst = "/tmp/" +appId + "_" + UUID.randomUUID().toString();
+
+    fs.copyToLocalFile(src, new Path(dst));
+    return dst;
+  }
+  
+  private NarwhalConfig deserializeObj(String path){
+    NarwhalConfig narwhalConfig = null;
+    try {
+      ObjectInputStream ois = new ObjectInputStream(new FileInputStream(path));
+      narwhalConfig = (NarwhalConfig) ois.readObject();
+      ois.close();
+  	} catch (IOException | ClassNotFoundException e) {
+  		e.printStackTrace();
+  	}
+    return narwhalConfig;
   }
 
   public static void main(String[] args) {
