@@ -158,15 +158,9 @@ public class NAppMaster {
     ContainerId containerId = ContainerId.fromString(
         envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
     applicationAttemptId = containerId.getApplicationAttemptId();
-    ApplicationId appId = applicationAttemptId.getApplicationId();
     LOG.info("applicationAttemptId: " + applicationAttemptId);
     
-    Options opts = new Options();
-    opts.addOption("appname", true, "specify application name. ");  
-    CommandLine cliParser = new GnuParser().parse(opts, args);
-    
-    String appName = cliParser.getOptionValue("appname");
-    String configPath = getFromLocalResources(appName,  appId.toString());
+    String configPath = "./" + configFilePath;
     narwhalConfig = deserializeObj(configPath);
     LOG.info("<----config file path : "+ configPath+ "---->");
     LOG.info("<----appname : "+ narwhalConfig.getName() + "---->");
@@ -234,17 +228,6 @@ public class NAppMaster {
       }
       Thread.sleep(5000);
     }
-  }
-  
-  private String getFromLocalResources(String appName, String appId) throws IOException{
-    FileSystem fs = FileSystem.get(conf);
-
-    String suffix = appName + "/" + appId +"/" +configFilePath;
-    Path src = new Path(fs.getHomeDirectory(), suffix);
-    String dst = "/tmp/" +appId + "_" + UUID.randomUUID().toString();
-
-    fs.copyToLocalFile(src, new Path(dst));
-    return dst;
   }
   
   private NarwhalConfig deserializeObj(String path){
