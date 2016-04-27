@@ -17,13 +17,12 @@ Narwhal is a YARN application for Docker container orchestration for YARN.
 
 ## Setting up and running Narwhal
 ```sh
-git clone ..
+git clone git://github.com/intel-haoop/Narwhal
+cd Narwhal
 mvn clean package -DskipTests
 ```
 ```sh
-vim artifact.json
-```
-```sh
+cat <<'EOF' >> artifact.json
 {
     "name": "simple-docker",
     "cpus": 2,
@@ -33,6 +32,7 @@ vim artifact.json
     "image": "centos",
     "local": true
 }
+EOF
 ```
 ```sh
 yarn jar target/narwhal-1.0-SNAPSHOT.jar -configFile artifact.json -jar target/narwhal-1.0-SNAPSHOT.jar
