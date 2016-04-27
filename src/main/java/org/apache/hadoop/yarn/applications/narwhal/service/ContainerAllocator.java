@@ -36,7 +36,8 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
       new ConcurrentHashMap<>();
 
   private int allocatedContainerNum = 0;
-  private int completedCounterNum = 0;
+  private int completedContainerNum = 0;
+  private int startedContainerNum = 0;
   @Override
   public void handle(ContainerAllocatorEvent containerAllocatorEvent) {
     try {
@@ -70,6 +71,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
   public void addStartedContainer(ContainerAllocatorEvent event) {
     startedContainers.put(event.getId().getContainerId(), event.getId());
+    startedContainerNum++;
   }
 
   @Override
@@ -168,7 +170,8 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
         ", state: " + containerStatus.getState() + ", exitCode: " + containerStatus.getExitStatus());
         if (containerStatus.getState().equals(ContainerState.COMPLETE)) {
           postExecutorCompleteEvent(containerStatus.getContainerId(), containerStatus);
-          completedCounterNum++;
+          completedContainerNum++;
+          startedContainerNum--;
         }
       }
 
@@ -222,7 +225,10 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
       if (allocatedContainerNum == 0) {
         return 0;
       }
-      return (float)(completedCounterNum)/(float)allocatedContainerNum;
+      //TODO: Zhankun FixMe. This has potential issue that output a smaller progress than previous progress
+      float expectedProgress = (float)(completedContainerNum)/(float)allocatedContainerNum;
+      float estimatedProgress = (startedContainerNum/(float)2)/(float)allocatedContainerNum;
+      return expectedProgress > estimatedProgress?expectedProgress:estimatedProgress;
     }
 
     @Override

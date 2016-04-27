@@ -15,6 +15,8 @@ public class ContainerLauncherEvent extends AbstractEvent<ContainerLauncherEvent
 
   private String userCmd;
 
+  private String dockerImageName;
+
   public ContainerLauncherEvent(ExecutorID id, Container container,
                                 ContainerLauncherEventType type) {
     super(type);
@@ -41,4 +43,13 @@ public class ContainerLauncherEvent extends AbstractEvent<ContainerLauncherEvent
   public void setUserCmd(String userCmd) {
     this.userCmd = userCmd;
   }
+
+  public void setDockerImageName(String dockerImageName) {
+    this.dockerImageName = dockerImageName;
+  }
+
+  public String getDockerImageName() {
+    return dockerImageName;
+  }
+
 }

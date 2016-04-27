@@ -60,12 +60,12 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
     }
 
     private void createTasks(NJobImpl nJob, NarwhalConfig narwhalConfig) {
-      //TODO: yuqiang, change this hardcoded lines based on narwhalConfig
-      int taskNum = 2;
+      int taskNum = narwhalConfig.getInstances();
       for (int i = 0; i < taskNum; i++) {
         Task task = new NTaskImpl(nJob.getID(), i, nJob.eventHandler,
-            "sleep 30; cat /proc/1/cgroup", 1,
-            128, 0, true);
+            narwhalConfig.getCmd(), (int)narwhalConfig.getCpus(),
+            (int)narwhalConfig.getMem(), 0, narwhalConfig.getImage(),
+            narwhalConfig.isLocal());
         nJob.addTask(task);
       }
       LOG.info("create " + taskNum + " tasks.");

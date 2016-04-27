@@ -91,14 +91,14 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
     return nmClientAsync;
   }
 
-  private ContainerLaunchContext buildContainerContext(String cmd, boolean useDocker) {
+  private ContainerLaunchContext buildContainerContext(String cmd, String image, boolean useDocker) {
     ContainerLaunchContext ctx = null;
     try {
       //env
       Map<String, String> env = new HashedMap();
       if (useDocker) {
         env.put("YARN_CONTAINER_RUNTIME_TYPE", "docker");
-        env.put("YARN_CONTAINER_RUNTIME_DOCKER_IMAGE", "centos_yarn:latest");
+        env.put("YARN_CONTAINER_RUNTIME_DOCKER_IMAGE", image);
       }
       List<String> commands = new ArrayList<>();
       //cmd
@@ -131,9 +131,9 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
     String userCmd = event.getUserCmd();
     ContainerLaunchContext ctx = null;
     if (event.getId() instanceof TaskId) {
-       ctx = buildContainerContext(userCmd, true);
+       ctx = buildContainerContext(userCmd, event.getDockerImageName(), true);
     } else {
-      ctx = buildContainerContext(userCmd, false);
+      ctx = buildContainerContext(userCmd, null, false);
     }
     if (ctx == null) {
       LOG.info("ContainerLaunchContext is null");
