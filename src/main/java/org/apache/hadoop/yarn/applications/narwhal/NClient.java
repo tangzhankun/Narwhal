@@ -182,7 +182,6 @@ public class NClient {
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
     vargs.add(Environment.JAVA_HOME.$$() + "/bin/java");
     vargs.add(appMasterMainClass);
-    vargs.add("--appname " + narwhalConfig.getName());
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
             + "/AppMaster.stdout");
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
