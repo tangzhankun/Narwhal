@@ -14,7 +14,7 @@ Narwhal is a YARN application for Docker container orchestration for YARN.
 - [ ] Application master fault tolerance
 - [ ] Client and AM RPC
 - [ ] Dynamically scale tasks
-- [ ] Remove appname submission to AM
+- [x] Remove appname submission to AM
 - [ ] Use MD5 hash to check if image has already been loaded
 
 ## Setting up and running Narwhal
