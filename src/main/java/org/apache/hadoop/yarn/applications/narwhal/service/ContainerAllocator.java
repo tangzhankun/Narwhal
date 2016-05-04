@@ -35,6 +35,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
   private ConcurrentHashMap<ContainerId, ExecutorID> startedContainers =
       new ConcurrentHashMap<>();
 
+  private int allocatedContainerMaxNum = 0;
   private int allocatedContainerNum = 0;
   private int completedContainerNum = 0;
   private int startedContainerNum = 0;
@@ -130,6 +131,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     AMRMClient.ContainerRequest request = new AMRMClient.ContainerRequest(capability,nodes,null,pri);
     amRMClientAsync.addContainerRequest(request);
     pendingTasks.add(event.getId());
+    allocatedContainerMaxNum++;
   }
 
   private void releaseContainer() {
@@ -225,10 +227,12 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
       if (allocatedContainerNum == 0) {
         return 0;
       }
-      //TODO: Zhankun FixMe. This has potential issue that output a smaller progress than previous progress
+      //TODO: Zhankun FixMe. find a better way to compute the progress
+      float estimatedMaxProgress = (float)1/(float)allocatedContainerMaxNum;
       float expectedProgress = (float)(completedContainerNum)/(float)allocatedContainerNum;
-      float estimatedProgress = (startedContainerNum/(float)2)/(float)allocatedContainerNum;
-      return expectedProgress > estimatedProgress?expectedProgress:estimatedProgress;
+      float estimatedProgress = (float)startedContainerNum/(float)allocatedContainerNum;
+      float temp = estimatedProgress < estimatedMaxProgress ? estimatedProgress:estimatedMaxProgress;
+      return expectedProgress > temp?expectedProgress:temp;
     }
 
     @Override
