@@ -14,47 +14,47 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
  */
 public class NClient {
 
-	private static final Log LOG = LogFactory.getLog(NClient.class);
+  private static final Log LOG = LogFactory.getLog(NClient.class);
 
-	private ClientAction action;
+  private ClientAction action;
 
-	public boolean init(String[] args) throws ParseException {
+  public boolean init(String[] args) throws ParseException {
 
-		String mainCmd = args[0];
-		switch (mainCmd) {
-		case "run":
-			action = new ActionSubmitApp();
-			break;
-		case "resolve":
-			action = new ActionResolve();
-			break;
-		default:
-			throw new IllegalArgumentException("unknown command");
-		}
-		return action.init(args);
-	}
+    String mainCmd = args[0];
+    switch (mainCmd) {
+      case ClientAction.RUN:
+        action = new ActionSubmitApp();
+        break;
+      case ClientAction.RESOLVE:
+        action = new ActionResolve();
+        break;
+      default:
+        throw new IllegalArgumentException("unknown command");
+    }
+    return action.init(args);
+  }
 
-	public boolean run() throws YarnException, IOException {
-		return action.execute();
-	}
+  public boolean run() throws YarnException, IOException {
+    return action.execute();
+  }
 
-	public static void main(String[] args) {
-		boolean result = false;
-		try {
-			NClient nClient = new NClient();
-			boolean inited = nClient.init(args);
-			if (inited) {
-				result = nClient.run();
-			}
-		} catch (ParseException | YarnException | IOException e) {
-			e.printStackTrace();
-		}
-		if (result) {
-			LOG.info("Command ["+ args[0] + "]  executed successfully");
-			System.exit(0);
-		}
-		LOG.error("Command ["+ args[0] + "] failed to executed successfully");
-		System.exit(2);
-	}
+  public static void main(String[] args) {
+    boolean result = false;
+    try {
+      NClient nClient = new NClient();
+      boolean inited = nClient.init(args);
+      if (inited) {
+        result = nClient.run();
+      }
+    } catch (ParseException | YarnException | IOException e) {
+      e.printStackTrace();
+    }
+    if (result) {
+      LOG.info("Command [" + args[0] + "]  executed successfully");
+      System.exit(0);
+    }
+    LOG.error("Command [" + args[0] + "] failed to executed successfully");
+    System.exit(2);
+  }
 
 }

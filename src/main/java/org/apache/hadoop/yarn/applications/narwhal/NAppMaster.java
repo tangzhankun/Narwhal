@@ -5,8 +5,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.registry.client.api.RegistryOperations;
-import org.apache.hadoop.registry.client.api.RegistryOperationsFactory;
 import org.apache.hadoop.registry.client.binding.RegistryUtils;
 import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.apache.hadoop.registry.client.types.yarn.PersistencePolicies;
@@ -21,7 +19,7 @@ import org.apache.hadoop.yarn.applications.narwhal.dispatcher.WorkerEventDispatc
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.job.Job;
 import org.apache.hadoop.yarn.applications.narwhal.job.NJobImpl;
-import org.apache.hadoop.yarn.applications.narwhal.registry.YarnRegistryViewForProviders;
+import org.apache.hadoop.yarn.applications.narwhal.registry.NRegistryOperator;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerAllocator;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerLauncher;
 import org.apache.hadoop.yarn.applications.narwhal.state.JobState;
@@ -42,6 +40,7 @@ import java.util.Map;
 public class NAppMaster {
 
   private static final Log LOG = LogFactory.getLog(NAppMaster.class);
+  
   private Configuration conf;
   private AppContext context;
   private Dispatcher dispatcher;
@@ -55,8 +54,7 @@ public class NAppMaster {
   protected NarwhalConfig narwhalConfig;
   private static final String configFilePath = "artifact.json";
   
-  private RegistryOperations registryOperations;
-  private YarnRegistryViewForProviders yarnRegistryOperations;
+  private NRegistryOperator registryOperator;
 
   public class AppContext{
     private final Configuration conf;
@@ -173,8 +171,6 @@ public class NAppMaster {
     parseOptions(args);
     
     LOG.info("Before register service instance");
-    registryOperations = createRegistryOperationsInstance();
-    registryOperations.start();
     registerServiceInstance(narwhalConfig.getName(), applicationAttemptId.getApplicationId());
     LOG.info("After register service instance");
     
@@ -254,28 +250,14 @@ public class NAppMaster {
   	String serviceUserName = RegistryUtils.currentUser();
   	
     String appType = "narwhal-docker";
-    yarnRegistryOperations = new YarnRegistryViewForProviders(registryOperations, serviceUserName, appType, instanceName, applicationAttemptId);
+    registryOperator = new NRegistryOperator(serviceUserName, appType, instanceName, conf);
 
-    // Yarn registry
     ServiceRecord serviceRecord = new ServiceRecord();
     serviceRecord.set(YarnRegistryAttributes.YARN_ID, appId.toString());
     serviceRecord.set(YarnRegistryAttributes.YARN_PERSISTENCE, PersistencePolicies.APPLICATION);
     serviceRecord.description = "Narwhal Application Master";
+    registryOperator.registerSelf(serviceRecord, true);
 
-    // register the service's entry
-    LOG.info("Service Record: " +  serviceRecord);
-    yarnRegistryOperations.registerSelf(serviceRecord, true);
-    
-    boolean isFirstAttempt = 1 == applicationAttemptId.getAttemptId();
-    // delete the children in case there are any and this is an AM startup.
-    // just to make sure everything underneath is purged
-    if (isFirstAttempt) {
-      yarnRegistryOperations.deleteChildren(yarnRegistryOperations.getSelfRegistrationPath(),true);
-    }
-  }
-  
-  protected RegistryOperations createRegistryOperationsInstance() {
-    return RegistryOperationsFactory.createInstance("YarnRegistry", conf);
   }
   
   public static void main(String[] args) {
