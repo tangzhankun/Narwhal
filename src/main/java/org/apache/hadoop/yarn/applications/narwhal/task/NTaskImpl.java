@@ -5,6 +5,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.applications.narwhal.common.ImageUtil;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.state.TaskState;
 import org.apache.hadoop.yarn.applications.narwhal.job.JobId;
@@ -41,6 +42,8 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
   private Container container;
 
   //task config info
+  private String appName;
+  private String appId;
   private String userCmd;
   private int mem;
   private int cpu;
@@ -78,7 +81,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
   public NTaskImpl(JobId jobId, int id, EventHandler eventHandler,
                    String userCmd, int cpu, int mem, int pri,
-                   String imageName, boolean useLocalImage) {
+                   String imageName, boolean useLocalImage, String appName) {
     this.eventHandler = eventHandler;
     this.taskId = new TaskId(jobId, id);
     this.stateMachine = stateMachineFactory.make(this);
@@ -91,6 +94,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     this.pri = pri;
     this.isUsingLocalImage = useLocalImage;
     this.imageName = imageName;
+    this.appName = appName;
   }
 
   private static class ErrorTransition implements
@@ -154,9 +158,11 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
         LOG.info("** new Worker **");
         String hostname = taskEvent.getContainer().getNodeId().getHost();
         //TODO: this should be docker load image file
-        String workerCmd = "docker images";
+        String resourceName = ImageUtil.getFSFileName(nTask.getImageName());
+        String resourcePath = ImageUtil.getFSFilePathSuffix(nTask.getAppName(), nTask.getAppId(), resourceName);
+        String workerCmd = "docker load -i ./" + resourceName;
         NWorkerImpl worker = new NWorkerImpl(taskEvent.getTaskID(), 0,
-            nTask.eventHandler, hostname, workerCmd);
+            nTask.eventHandler, hostname, workerCmd, resourceName, resourcePath);
         nTask.eventHandler.handle(new WorkerEvent(worker.getID(),
             WorkerEventType.WORKER_SCHEDULE));
         nTask.addWorker(worker);
@@ -313,5 +319,17 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
   public boolean isUsingLocalImage() {
     return isUsingLocalImage;
+  }
+
+  public String getAppName() {
+    return appName;
+  }
+
+  public void setAppName(String appName) {
+    this.appName = appName;
+  }
+
+  public String getAppId() {
+    return taskId.getJobId().getAppId().toString();
   }
 }

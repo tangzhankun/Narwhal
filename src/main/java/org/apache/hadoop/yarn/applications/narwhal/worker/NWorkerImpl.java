@@ -2,6 +2,7 @@ package org.apache.hadoop.yarn.applications.narwhal.worker;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.state.WorkerState;
@@ -27,6 +28,11 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
   private String hostname;
 
   private String cmd;
+
+  //for instance, a worker to load image from this resource
+  private String resourceName;
+
+  private String resourcePath;
 
   private WorkerId workerId;
 
@@ -75,6 +81,8 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
           workerEvent.getContainer(),
           ContainerLauncherEventType.CONATAINERLAUNCHER_LAUNCH);
       containerLauncherEvent.setUserCmd(nWorker.getCmd());
+      containerLauncherEvent.setResourceFileName(nWorker.getResourceName());
+      containerLauncherEvent.setResourceFilePath(nWorker.getResourcePath());
       nWorker.eventHandler.handle(containerLauncherEvent);
     }
   }
@@ -85,9 +93,16 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
     @Override
     public WorkerState transition(NWorkerImpl nWorker, WorkerEvent workerEvent) {
       LOG.info("**WorkerCompleteTransition**");
-      nWorker.eventHandler.handle(new TaskEvent(workerEvent.getWorkerId().getTaskId(),
-          TaskEventType.TASK_SETUP));
-      return WorkerState.SUCCEED;
+      ContainerStatus containerStatus = workerEvent.getContainerStatus();
+      int returnValue = containerStatus.getExitStatus();
+      if (returnValue == 0) {
+        nWorker.eventHandler.handle(new TaskEvent(workerEvent.getWorkerId().getTaskId(),
+            TaskEventType.TASK_SETUP));
+        return WorkerState.SUCCEED;
+      } else {
+        LOG.info(nWorker.getID() + " failed with return value: " + returnValue);
+        return WorkerState.FAILED;
+      }
     }
   }
 
@@ -120,7 +135,7 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
       .installTopology();
 
   public NWorkerImpl(TaskId taskId, int id, EventHandler eventHandler,
-                     String hostname, String cmd) {
+                     String hostname, String cmd, String resourceName, String resourcePath) {
     this.hostname = hostname;
     this.workerId = new WorkerId(taskId,id);
     this.eventHandler = eventHandler;
@@ -128,6 +143,8 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     this.writeLock = readWriteLock.writeLock();
     this.cmd = cmd;
+    this.resourceName = resourceName;
+    this.resourcePath = resourcePath;
   }
 
   @Override
@@ -167,5 +184,20 @@ public class NWorkerImpl implements Worker, EventHandler<WorkerEvent> {
 
   public StateMachine<WorkerState, WorkerEventType, WorkerEvent> getStateMachine() {
     return stateMachine;
+  }
+  public String getResourceName() {
+    return resourceName;
+  }
+
+  public void setResourceName(String resourceName) {
+    this.resourceName = resourceName;
+  }
+
+  public String getResourcePath() {
+    return resourcePath;
+  }
+
+  public void setResourcePath(String resourcePath) {
+    this.resourcePath = resourcePath;
   }
 }
