@@ -205,7 +205,7 @@ public class ActionSubmitApp implements ClientAction {
       }
 
       ApplicationReport report = yarnClient.getApplicationReport(appId);
-      LOG.info("Got application report from ASM for" + ", appId="
+      LOG.info("Got report:" + ", appId="
               + appId.getId() + ", appDiagnostics=" + report.getDiagnostics()
               + ", appQueue=" + report.getQueue() + ", progress= "
               + report.getProgress() * 100 + "%");
