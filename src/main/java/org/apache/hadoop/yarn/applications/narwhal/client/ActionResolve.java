@@ -58,8 +58,4 @@ public class ActionResolve implements ClientAction {
     return true;
   }
 
-  protected RegistryOperations createRegistryOperationsInstance() {
-    return RegistryOperationsFactory.createInstance("YarnRegistry", conf);
-  }
-
 }
