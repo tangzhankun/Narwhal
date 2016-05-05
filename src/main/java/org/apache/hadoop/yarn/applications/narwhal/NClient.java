@@ -151,7 +151,7 @@ public class NClient {
       }
 
       ApplicationReport report = yarnClient.getApplicationReport(appId);
-      LOG.info("Got application report from ASM for"
+      LOG.info("Got report:"
           + ", appId=" + appId.getId()
           + ", appDiagnostics=" + report.getDiagnostics()
           + ", appQueue=" + report.getQueue()
