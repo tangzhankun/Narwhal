@@ -12,6 +12,6 @@ public interface ClientAction {
 
   public boolean init(String[] args) throws ParseException;
 
-  public boolean execute() throws YarnException, IOException;
+  public boolean execute() throws YarnException, IOException, InterruptedException;
 
 }

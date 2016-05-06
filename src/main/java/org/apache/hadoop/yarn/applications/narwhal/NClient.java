@@ -1,6 +1,7 @@
 package org.apache.hadoop.yarn.applications.narwhal;
 
 import java.io.IOException;
+
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,7 +35,7 @@ public class NClient {
     return action.init(args);
   }
 
-  public boolean run() throws YarnException, IOException {
+  public boolean run() throws YarnException, IOException, InterruptedException {
     return action.execute();
   }
 
@@ -46,7 +47,7 @@ public class NClient {
       if (inited) {
         result = nClient.run();
       }
-    } catch (ParseException | YarnException | IOException e) {
+    } catch (ParseException | YarnException | IOException | InterruptedException e) {
       e.printStackTrace();
     }
     if (result) {
