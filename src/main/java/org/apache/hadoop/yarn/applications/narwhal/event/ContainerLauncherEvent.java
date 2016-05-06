@@ -17,6 +17,10 @@ public class ContainerLauncherEvent extends AbstractEvent<ContainerLauncherEvent
 
   private String dockerImageName;
 
+  private String resourceFileName;
+
+  private String resourceFilePath;
+
   public ContainerLauncherEvent(ExecutorID id, Container container,
                                 ContainerLauncherEventType type) {
     super(type);
@@ -52,4 +56,19 @@ public class ContainerLauncherEvent extends AbstractEvent<ContainerLauncherEvent
     return dockerImageName;
   }
 
+  public String getResourceFileName() {
+    return resourceFileName;
+  }
+
+  public void setResourceFileName(String resourceFileName) {
+    this.resourceFileName = resourceFileName;
+  }
+
+  public String getResourceFilePath() {
+    return resourceFilePath;
+  }
+
+  public void setResourceFilePath(String resourceFilePath) {
+    this.resourceFilePath = resourceFilePath;
+  }
 }

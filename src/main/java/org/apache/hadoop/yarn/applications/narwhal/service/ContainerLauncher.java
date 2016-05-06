@@ -3,6 +3,9 @@ package org.apache.hadoop.yarn.applications.narwhal.service;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -13,9 +16,11 @@ import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.task.ExecutorID;
 import org.apache.hadoop.yarn.applications.narwhal.task.TaskId;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -91,7 +96,8 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
     return nmClientAsync;
   }
 
-  private ContainerLaunchContext buildContainerContext(String cmd, String image, boolean useDocker) {
+  private ContainerLaunchContext buildContainerContext(String cmd, String image,
+                                                       boolean useDocker, Map<String, LocalResource> localResources ) {
     ContainerLaunchContext ctx = null;
     try {
       //env
@@ -118,7 +124,7 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
       ByteBuffer allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
       //ctx
       ctx = ContainerLaunchContext.newInstance(
-          null, env, commands, null, allTokens.duplicate(), null
+          localResources, env, commands, null, allTokens.duplicate(), null
       );
     } catch (IOException e) {
       e.printStackTrace();
@@ -131,9 +137,27 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
     String userCmd = event.getUserCmd();
     ContainerLaunchContext ctx = null;
     if (event.getId() instanceof TaskId) {
-       ctx = buildContainerContext(userCmd, event.getDockerImageName(), true);
+       ctx = buildContainerContext(userCmd, event.getDockerImageName(), true, null);
     } else {
-      ctx = buildContainerContext(userCmd, null, false);
+      Map<String, LocalResource> localResources = new HashMap<>();
+      String resourceFileName = event.getResourceFileName();
+      String resourcePath = event.getResourceFilePath();
+      if (resourcePath != "") {
+        FileSystem fs = null;
+        try {
+          fs = FileSystem.get(new YarnConfiguration());
+          Path dst = new Path(fs.getHomeDirectory(), resourcePath);
+          FileStatus scFileStatus = fs.getFileStatus(dst);
+          LocalResource scRsrc = LocalResource.newInstance(
+              ConverterUtils.getYarnUrlFromURI(dst.toUri()), LocalResourceType.FILE,
+              LocalResourceVisibility.APPLICATION, scFileStatus.getLen(),
+              scFileStatus.getModificationTime());
+          localResources.put(resourceFileName, scRsrc);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+      ctx = buildContainerContext(userCmd, null, false, localResources);
     }
     if (ctx == null) {
       LOG.info("ContainerLaunchContext is null");

@@ -1,10 +1,6 @@
 package org.apache.hadoop.yarn.applications.narwhal;
 
-import java.io.BufferedReader;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +35,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.applications.narwhal.common.ImageUtil;
 import org.apache.hadoop.yarn.applications.narwhal.config.BuilderException;
 import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfig;
 import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfigBuilder;
@@ -107,7 +104,7 @@ public class NClient {
     return confPath;
   }
 
-  public boolean run() throws YarnException, IOException {
+  public boolean run() throws YarnException, IOException, InterruptedException {
 
     yarnClient.start();
 
@@ -121,6 +118,16 @@ public class NClient {
 
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     FileSystem fs = FileSystem.get(conf);
+    //upload the local docker image
+    if (narwhalConfig.isLocal()) {
+      boolean dockerImgUploaded = uploadDockerImage(fs, appId.toString(), narwhalConfig.getImage());
+      if (dockerImgUploaded) {
+        LOG.info("Local Docker image " + narwhalConfig.getImage() + " uploaded successfully");
+      } else {
+        LOG.info("Local Docker image " + narwhalConfig.getImage() + " upload failed, existing");
+        System.exit(3);
+      }
+    }
     addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.toString(), localResources, null);
     configFile = serializeObj(appId, narwhalConfig);
     addToLocalResources(fs, configFile, configFilePath, appId.toString(), localResources, null);
@@ -139,6 +146,36 @@ public class NClient {
     yarnClient.submitApplication(appContext);
 
     return monitorApplicartion(appId);
+  }
+
+  private boolean uploadDockerImage(FileSystem fs, String appId, String image) throws IOException, InterruptedException {
+    boolean uploaded = false;
+    //run docker save
+    LOG.info("uploading Docker image: " + image);
+    //TODO: check the fsImageName to ensure it matches DFS restrictions. for instance, no ":" in it
+    String fsImageName = ImageUtil.getFSFileName(image);
+    String localTempTar = ImageUtil.getTempDir() + fsImageName;
+    String saveCmd = "docker save -o " + localTempTar + " " + image;
+    Process p = Runtime.getRuntime().exec(saveCmd);
+    p.waitFor();
+    int exitCode = p.exitValue();
+    if (exitCode == 0) {
+      //TODO: use md5 to check if we need upload
+      String suffix = ImageUtil.getFSFilePathSuffix(narwhalConfig.getName(), appId, fsImageName);
+      Path dst = new Path(fs.getHomeDirectory(), suffix);
+      fs.copyFromLocalFile(new Path(localTempTar), dst);
+      FileStatus scFileStatus = fs.getFileStatus(dst);
+      //TODO: check the hdfs upload successfully
+      uploaded = true;
+    } else {
+      BufferedReader reader = new BufferedReader(new InputStreamReader(
+          p.getInputStream()));
+      String s;
+      while ((s = reader.readLine()) != null) {
+        System.out.println("Docker save output: " + s);
+      }
+    }
+    return uploaded;
   }
 
   public boolean monitorApplicartion(ApplicationId appId) throws YarnException, IOException {
@@ -182,11 +219,11 @@ public class NClient {
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
     vargs.add(Environment.JAVA_HOME.$$() + "/bin/java");
     vargs.add(appMasterMainClass);
-    vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
+    vargs.add(">" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
             + "/AppMaster.stdout");
-    vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
-            + "/AppMaster.stderr");
-
+    //vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR
+    //        + "/AppMaster.stderr");
+    vargs.add("2>&1");
     StringBuilder command = new StringBuilder();
     for (CharSequence str : vargs) {
       command.append(str).append(" ");
@@ -303,7 +340,7 @@ public class NClient {
       if (inited) {
         result = nClient.run();
       }
-    } catch (ParseException | IOException | YarnException e) {
+    } catch (ParseException | IOException | YarnException | InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }

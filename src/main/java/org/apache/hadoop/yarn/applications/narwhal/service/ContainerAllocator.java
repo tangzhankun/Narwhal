@@ -182,27 +182,24 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
     @Override
     public void onContainersAllocated(List<Container> list) {
-      if (pendingTasks.size() == 0) {
-        LOG.info("No container request in pending queue, so skip these container:");
-        //TODO: zhankun, we should cancel/release this container
-        for (Container allocatedContainer : list) {
-          LOG.info("Got " + allocatedContainer.getId() + " from RM, weired");
-        }
-        return;
-      }
       //TODO: Zhankun. no assign policy now, just FIFO. should check the resource/node label and then assign containers to tasks
       for (Container allocatedContainer : list) {
+        if (pendingTasks.size() == 0) {
+          //TODO: zhankun. seems this unreleased container will cause error when stop AMRM client
+          LOG.info("All pendingTasks are scheduled, skip. Remaining allocatedContainer size from RM:" + list.size());
+          break;
+        }
         ExecutorID id = pendingTasks.get(0);
         id.setContainerId(allocatedContainer.getId());
         if (id instanceof TaskId) {
-          TaskEvent taskEvent = new TaskEvent((TaskId)id, TaskEventType.TASK_SETUP);
+          TaskEvent taskEvent = new TaskEvent((TaskId) id, TaskEventType.TASK_SETUP);
           taskEvent.setContainer(allocatedContainer);
           LOG.info("post TaskEvent:" + taskEvent + " to " + id);
           LOG.info("Allocated " + allocatedContainer.getId() + " to " + id);
           eventHandler.handle(taskEvent);
         }
         if (id instanceof WorkerId) {
-          WorkerEvent workerEvent = new WorkerEvent((WorkerId)id, WorkerEventType.WORKER_START);
+          WorkerEvent workerEvent = new WorkerEvent((WorkerId) id, WorkerEventType.WORKER_START);
           workerEvent.setContainer(allocatedContainer);
           LOG.info("post WorkerEvent:" + workerEvent + " to " + id);
           LOG.info("Allocated " + allocatedContainer.getId() + " to " + id);
@@ -228,7 +225,7 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
       if (allocatedContainerNum == 0) {
         return 0;
       }
-      //TODO: Zhankun FixMe. find a better way to compute the progress
+      //TODO: Zhankun FixMe. find a better way to compute the progress and restrict the float precision
       float estimatedMaxProgress = (float)1/(float)allocatedContainerMaxNum;
       float expectedProgress = (float)(completedContainerNum)/(float)allocatedContainerNum;
       float estimatedProgress = (float)startedContainerNum/(float)allocatedContainerNum;
