@@ -171,7 +171,7 @@ public class NAppMaster {
     parseOptions(args);
     
     LOG.info("Before register service instance");
-    registerServiceInstance(narwhalConfig.getName(), applicationAttemptId.getApplicationId());
+    registerServiceInstance(applicationAttemptId.getApplicationId());
     LOG.info("After register service instance");
     
     createDispatcher();
@@ -246,18 +246,17 @@ public class NAppMaster {
     return narwhalConfig;
   }
   
-  public void registerServiceInstance(String instanceName, ApplicationId appId) throws IOException {
-  	String serviceUserName = RegistryUtils.currentUser();
-  	
-    String appType = "narwhal-docker";
-    registryOperator = new NRegistryOperator(serviceUserName, appType, instanceName, conf);
+  public void registerServiceInstance(ApplicationId appId) throws IOException {
+ 
+    registryOperator = new NRegistryOperator(appId.toString(), conf);
 
-    ServiceRecord serviceRecord = new ServiceRecord();
-    serviceRecord.set(YarnRegistryAttributes.YARN_ID, appId.toString());
-    serviceRecord.set(YarnRegistryAttributes.YARN_PERSISTENCE, PersistencePolicies.APPLICATION);
-    serviceRecord.description = "Narwhal Application Master";
-    registryOperator.registerSelf(serviceRecord, true);
-
+    registryOperator.set("TEST", "TEST_VALUE");
+    registryOperator.set("TEST1", "TEST_VALUE1");
+    registryOperator.set("TEST2", "TEST_VALUE2");
+    registryOperator.register(true);
+    registryOperator.set("TEST", "TEST_VALUE_UPDATE");
+    registryOperator.set("TEST3", "TEST_VALUE3");
+    registryOperator.update();
   }
   
   public static void main(String[] args) {

@@ -3,15 +3,12 @@ package org.apache.hadoop.yarn.applications.narwhal.registry;
 import com.google.common.base.Preconditions;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.PathNotFoundException;
 import org.apache.hadoop.registry.client.api.RegistryConstants;
 import org.apache.hadoop.registry.client.api.BindFlags;
 import org.apache.hadoop.registry.client.api.RegistryOperations;
 import org.apache.hadoop.registry.client.api.RegistryOperationsFactory;
 import org.apache.hadoop.registry.client.binding.RegistryUtils;
 import org.apache.hadoop.registry.client.binding.RegistryPathUtils;
-import org.apache.hadoop.registry.client.exceptions.InvalidRecordException;
-import org.apache.hadoop.registry.client.exceptions.NoRecordException;
 import org.apache.hadoop.registry.client.types.ServiceRecord;
 
 import java.io.IOException;
@@ -21,49 +18,28 @@ public class NRegistryOperator {
   private RegistryOperations registryOperations;
 
   private final String user;
-  private Configuration conf;
-  private final String narwhalServiceClass;
-  private final String instanceName;
+  private final String appIdAsName;
+  private final String serviceClass = "org-apache-narwhal";
 
-  private ServiceRecord selfRegistration;
-
+  private ServiceRecord record;
   private String selfRegistrationPath;
-
-  public NRegistryOperator(String user, String narwhalServiceClass, String instanceName, Configuration conf) {
+  private Configuration conf;
+  
+  public NRegistryOperator(String appIdAsName, Configuration conf) {
     this.conf = conf;
-    Preconditions.checkArgument(user != null, "null user");
-    Preconditions.checkArgument(isSet(narwhalServiceClass), "unset service class");
-    Preconditions.checkArgument(isSet(instanceName), "instanceName");
-    this.user = user;
-    this.narwhalServiceClass = narwhalServiceClass;
-    this.instanceName = instanceName;
-
+    Preconditions.checkArgument(isSet(appIdAsName), "instanceName");
+    this.appIdAsName = appIdAsName;
+    this.user = RegistryUtils.currentUser();
     createRegistryOperationsInstance();
-
+    initServiceRecord();
   }
 
   public String getUser() {
     return user;
   }
 
-  public String getNarwhalServiceClass() {
-    return narwhalServiceClass;
-  }
-
-  public String getInstanceName() {
-    return instanceName;
-  }
-
   public RegistryOperations getRegistryOperations() {
     return registryOperations;
-  }
-
-  public ServiceRecord getSelfRegistration() {
-    return selfRegistration;
-  }
-
-  private void setSelfRegistration(ServiceRecord selfRegistration) {
-    this.selfRegistration = selfRegistration;
   }
 
   public String getSelfRegistrationPath() {
@@ -78,8 +54,8 @@ public class NRegistryOperator {
     return RegistryPathUtils.join(root, selfRegistrationPath);
   }
 
-  public String putService(String username, String serviceClass, String serviceName, ServiceRecord record, boolean deleteTreeFirst) throws IOException {
-    String path = RegistryUtils.servicePath(username, serviceClass, serviceName);
+  public String putService(String appIdAsName, boolean deleteTreeFirst) throws IOException {
+    String path = RegistryUtils.servicePath(user, serviceClass, appIdAsName);
     if (deleteTreeFirst) {
       registryOperations.delete(path, true);
     }
@@ -88,18 +64,21 @@ public class NRegistryOperator {
     return path;
   }
 
-  public String registerSelf(ServiceRecord record, boolean deleteTreeFirst) throws IOException {
-    selfRegistrationPath = putService(user, narwhalServiceClass, instanceName, record, deleteTreeFirst);
-    setSelfRegistration(record);
+  public String register(boolean deleteTreeFirst) throws IOException {
+    selfRegistrationPath = putService(appIdAsName, deleteTreeFirst);
     return selfRegistrationPath;
   }
 
-  public void updateSelf() throws IOException {
-    putService(user, narwhalServiceClass, instanceName, selfRegistration, false);
+  public void update() throws IOException {
+    putService(appIdAsName, false);
   }
-
-  public ServiceRecord resolve() throws NoRecordException, InvalidRecordException, PathNotFoundException, IOException {
-    String path = RegistryUtils.servicePath(user, narwhalServiceClass, instanceName);
+  
+  public void delete() throws IOException {
+  	registryOperations.delete(selfRegistrationPath, true);
+  }
+  
+  public ServiceRecord resolve() throws IOException {
+    String path = RegistryUtils.servicePath(user, serviceClass, appIdAsName);
     ServiceRecord record = registryOperations.resolve(path);
     return record;
   }
@@ -116,6 +95,15 @@ public class NRegistryOperator {
     if (registryOperations != null) {
       registryOperations.stop();
     }
+  }
+  
+  private void initServiceRecord(){
+  	record = new ServiceRecord();
+  	record.description = "Narwhal Application Master";
+  }
+  
+  public void set(String key, String value){
+  	record.set(key, value);
   }
 
   public static boolean isUnset(String s) {

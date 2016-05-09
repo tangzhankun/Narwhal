@@ -9,9 +9,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.registry.client.api.RegistryOperations;
-import org.apache.hadoop.registry.client.api.RegistryOperationsFactory;
-import org.apache.hadoop.registry.client.binding.RegistryUtils;
 import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.apache.hadoop.yarn.applications.narwhal.registry.NRegistryOperator;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -25,8 +22,6 @@ public class ActionResolve implements ClientAction {
   private Configuration conf;
   private String appName;
   private NRegistryOperator registryOperator;
-
-  private String serviceType = "narwhal-docker";
 
   public ActionResolve() {
     conf = new YarnConfiguration();
@@ -44,8 +39,7 @@ public class ActionResolve implements ClientAction {
     }
     appName = cliParser.getOptionValue("appName");
 
-    String currentUser = RegistryUtils.currentUser();
-    registryOperator = new NRegistryOperator(currentUser, serviceType, appName, conf);
+    registryOperator = new NRegistryOperator(appName, conf);
     return true;
   }
 

@@ -243,7 +243,7 @@ public class ActionSubmitApp implements ClientAction {
 
       ApplicationReport report = yarnClient.getApplicationReport(appId);
       LOG.info("Got report:"
-          + ", appId=" + appId.getId()
+          + "appId=" + appId.getId()
           + ", appDiagnostics=" + report.getDiagnostics()
           + ", appQueue=" + report.getQueue()
           + ", progress= " + report.getProgress()*100 + "%");
@@ -272,6 +272,7 @@ public class ActionSubmitApp implements ClientAction {
   public List<String> prepareCommands() {
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
     vargs.add(Environment.JAVA_HOME.$$() + "/bin/java");
+    vargs.add("-Xmx128m");
     vargs.add(appMasterMainClass);
     vargs.add(">" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/AppMaster.stdout");
 //    vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/AppMaster.stderr");
