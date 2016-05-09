@@ -32,6 +32,7 @@ import org.apache.log4j.LogManager;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -250,13 +251,40 @@ public class NAppMaster {
  
     registryOperator = new NRegistryOperator(appId.toString(), conf);
 
-    registryOperator.set("TEST", "TEST_VALUE");
-    registryOperator.set("TEST1", "TEST_VALUE1");
-    registryOperator.set("TEST2", "TEST_VALUE2");
-    registryOperator.register(true);
-    registryOperator.set("TEST", "TEST_VALUE_UPDATE");
-    registryOperator.set("TEST3", "TEST_VALUE3");
-    registryOperator.update();
+    registryOperator.setAppRecord("APP1", "APP_VALUE1");
+    registryOperator.setAppRecord("APP2", "APP_VALUE2");
+    registryOperator.setAppRecord("APP3", "APP_VALUE3");
+    registryOperator.registerApp();
+    registryOperator.setAppRecord("APP1", "APP_VALUE1_UPDATE");
+    registryOperator.setAppRecord("APP4", "APP_VALUE4");
+    registryOperator.updateApp();
+    
+    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1");
+    registryOperator.setContainerRecord("CTN2", "CTN_VALUE2");
+    registryOperator.setContainerRecord("CTN3", "CTN_VALUE3");
+    registryOperator.registerContainer("CTN_1");
+    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1_UPDATE");
+    registryOperator.setContainerRecord("CTN4", "CTN_VALUE4");
+    registryOperator.updateContainer("CTN_1");
+    
+    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1");
+    registryOperator.setContainerRecord("CTN2", "CTN_VALUE2");
+    registryOperator.setContainerRecord("CTN3", "CTN_VALUE3");
+    registryOperator.registerContainer("CTN_2");
+    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1_UPDATE");
+    registryOperator.setContainerRecord("CTN4", "CTN_VALUE4");
+    registryOperator.updateContainer("CTN_2");
+
+    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1");
+    registryOperator.setContainerRecord("CTN2", "CTN_VALUE2");
+    registryOperator.setContainerRecord("CTN3", "CTN_VALUE3");
+    registryOperator.registerContainer("CTN_3");
+    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1_UPDATE");
+    registryOperator.setContainerRecord("CTN4", "CTN_VALUE4");
+    registryOperator.updateContainer("CTN_3");
+    
+    registryOperator.deleteContainer("CTN_3");
+    
   }
   
   public static void main(String[] args) {
