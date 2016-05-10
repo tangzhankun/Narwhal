@@ -254,33 +254,29 @@ public class NAppMaster {
     registryOperator.setAppRecord("APP1", "APP_VALUE1");
     registryOperator.setAppRecord("APP2", "APP_VALUE2");
     registryOperator.setAppRecord("APP3", "APP_VALUE3");
-    registryOperator.registerApp();
     registryOperator.setAppRecord("APP1", "APP_VALUE1_UPDATE");
     registryOperator.setAppRecord("APP4", "APP_VALUE4");
     registryOperator.updateApp();
     
-    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1");
-    registryOperator.setContainerRecord("CTN2", "CTN_VALUE2");
-    registryOperator.setContainerRecord("CTN3", "CTN_VALUE3");
-    registryOperator.registerContainer("CTN_1");
-    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1_UPDATE");
-    registryOperator.setContainerRecord("CTN4", "CTN_VALUE4");
+    registryOperator.setContainerRecord("CTN_1", "CTN1", "CTN_VALUE1");
+    registryOperator.setContainerRecord("CTN_1", "CTN2", "CTN_VALUE2");
+    registryOperator.setContainerRecord("CTN_1", "CTN3", "CTN_VALUE3");
+    registryOperator.setContainerRecord("CTN_1", "CTN1", "CTN_VALUE1_UPDATE");
+    registryOperator.setContainerRecord("CTN_1", "CTN4", "CTN_VALUE4");
     registryOperator.updateContainer("CTN_1");
     
-    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1");
-    registryOperator.setContainerRecord("CTN2", "CTN_VALUE2");
-    registryOperator.setContainerRecord("CTN3", "CTN_VALUE3");
-    registryOperator.registerContainer("CTN_2");
-    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1_UPDATE");
-    registryOperator.setContainerRecord("CTN4", "CTN_VALUE4");
+    registryOperator.setContainerRecord("CTN_2", "CTN1", "CTN_VALUE1");
+    registryOperator.setContainerRecord("CTN_2", "CTN2", "CTN_VALUE2");
+    registryOperator.setContainerRecord("CTN_2", "CTN3", "CTN_VALUE3");
+    registryOperator.setContainerRecord("CTN_2", "CTN1", "CTN_VALUE1_UPDATE");
+    registryOperator.setContainerRecord("CTN_2", "CTN4", "CTN_VALUE4");
     registryOperator.updateContainer("CTN_2");
 
-    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1");
-    registryOperator.setContainerRecord("CTN2", "CTN_VALUE2");
-    registryOperator.setContainerRecord("CTN3", "CTN_VALUE3");
-    registryOperator.registerContainer("CTN_3");
-    registryOperator.setContainerRecord("CTN1", "CTN_VALUE1_UPDATE");
-    registryOperator.setContainerRecord("CTN4", "CTN_VALUE4");
+    registryOperator.setContainerRecord("CTN_3", "CTN1", "CTN_VALUE1");
+    registryOperator.setContainerRecord("CTN_3", "CTN2", "CTN_VALUE2");
+    registryOperator.setContainerRecord("CTN_3", "CTN3", "CTN_VALUE3");
+    registryOperator.setContainerRecord("CTN_3", "CTN1", "CTN_VALUE1_UPDATE");
+    registryOperator.setContainerRecord("CTN_3", "CTN4", "CTN_VALUE4");
     registryOperator.updateContainer("CTN_3");
     
     registryOperator.deleteContainer("CTN_3");

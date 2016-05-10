@@ -1,8 +1,8 @@
 package org.apache.hadoop.yarn.applications.narwhal.client;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -48,14 +48,22 @@ public class ActionResolve implements ClientAction {
 
   @Override
   public boolean execute() throws YarnException, IOException {
-    ServiceRecord record = registryOperator.resolveApp();
-    List<String> listAllContainers = registryOperator.listAllContainers();
-    List<String> listNarwhalApps = registryOperator.listNarwhalApps();
-    Map<String, ServiceRecord> resolveContainers = registryOperator.resolveContainers();
-    LOG.info("listAllContainers" + listAllContainers.toString());
-    LOG.info("listNarwhalApps" + listNarwhalApps.toString());
-    LOG.info("resolveContainers" + resolveContainers.values());
-    LOG.info("resolveApp" + record);
+    Map<String, ServiceRecord> containers = registryOperator.resolveContainers();
+    if (containers == null) {
+      LOG.info(applicationId + "cannot be found");
+    } else {
+      LOG.info(containers);
+      Set<String> containerIds = containers.keySet();
+      for (String containerId : containerIds) {
+        ServiceRecord record = containers.get(containerId);
+        String createdTime = record.get(NarwhalConstant.CREATED);
+        String host = record.get(NarwhalConstant.HOST);
+        String port = record.get(NarwhalConstant.PORT);
+        String image = record.get(NarwhalConstant.IMAGE);
+        String status = record.get(NarwhalConstant.STATUS);
+        String command = record.get(NarwhalConstant.COMMAND);
+      }
+    }
     return true;
   }
 

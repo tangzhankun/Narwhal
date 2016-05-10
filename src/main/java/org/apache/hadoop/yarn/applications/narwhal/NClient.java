@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.applications.narwhal.client.ActionListRegistedApp;
 import org.apache.hadoop.yarn.applications.narwhal.client.ActionResolve;
 import org.apache.hadoop.yarn.applications.narwhal.client.ActionSubmitApp;
 import org.apache.hadoop.yarn.applications.narwhal.client.ClientAction;
@@ -28,6 +29,9 @@ public class NClient {
         break;
       case ClientAction.RESOLVE:
         action = new ActionResolve();
+        break;
+      case ClientAction.REGISTRY:
+        action = new ActionListRegistedApp();
         break;
       default:
         throw new IllegalArgumentException("unknown command");

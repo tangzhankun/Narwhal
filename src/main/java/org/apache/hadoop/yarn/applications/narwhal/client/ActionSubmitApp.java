@@ -153,7 +153,7 @@ public class ActionSubmitApp implements ClientAction {
 
     return monitorApplicartion(appId);
   }
-  
+
   private boolean uploadDockerImage(FileSystem fs, String appId, String image) throws IOException, InterruptedException {
     boolean uploaded = false;
     //run docker save
@@ -175,7 +175,7 @@ public class ActionSubmitApp implements ClientAction {
       uploaded = true;
     } else {
       BufferedReader reader = new BufferedReader(new InputStreamReader(
-          p.getInputStream()));
+              p.getInputStream()));
       String s;
       while ((s = reader.readLine()) != null) {
         System.out.println("Docker save output: " + s);
@@ -243,10 +243,10 @@ public class ActionSubmitApp implements ClientAction {
 
       ApplicationReport report = yarnClient.getApplicationReport(appId);
       LOG.info("Got report:"
-          + "appId=" + appId.getId()
-          + ", appDiagnostics=" + report.getDiagnostics()
-          + ", appQueue=" + report.getQueue()
-          + ", progress= " + report.getProgress()*100 + "%");
+              + "appId=" + appId.getId()
+              + ", appDiagnostics=" + report.getDiagnostics()
+              + ", appQueue=" + report.getQueue()
+              + ", progress= " + report.getProgress() * 100 + "%");
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       if (YarnApplicationState.FINISHED == state) {
