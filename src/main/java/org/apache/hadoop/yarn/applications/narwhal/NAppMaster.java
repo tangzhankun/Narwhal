@@ -5,10 +5,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.registry.client.binding.RegistryUtils;
-import org.apache.hadoop.registry.client.types.ServiceRecord;
-import org.apache.hadoop.registry.client.types.yarn.PersistencePolicies;
-import org.apache.hadoop.registry.client.types.yarn.YarnRegistryAttributes;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
@@ -32,7 +28,6 @@ import org.apache.log4j.LogManager;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -55,8 +50,6 @@ public class NAppMaster {
   protected NarwhalConfig narwhalConfig;
   private static final String configFilePath = "artifact.json";
   
-  private NRegistryOperator registryOperator;
-
   public class AppContext{
     private final Configuration conf;
     public AppContext(Configuration conf) {
@@ -162,19 +155,12 @@ public class NAppMaster {
     
     String configPath = "./" + configFilePath;
     narwhalConfig = deserializeObj(configPath);
-    LOG.info("<----config file path : "+ configPath+ "---->");
-    LOG.info("<----appname : "+ narwhalConfig.getName() + "---->");
     
     return true;
   }
 
   public void init(String[] args) throws ParseException, IOException {
     parseOptions(args);
-    
-    LOG.info("Before register service instance");
-    registerServiceInstance(applicationAttemptId.getApplicationId());
-    LOG.info("After register service instance");
-    
     createDispatcher();
     startDispatcher();
     createJobEventDispatcher();
@@ -245,42 +231,6 @@ public class NAppMaster {
   		e.printStackTrace();
   	}
     return narwhalConfig;
-  }
-  
-  public void registerServiceInstance(ApplicationId appId) throws IOException {
- 
-    registryOperator = new NRegistryOperator(appId.toString(), conf);
-
-    registryOperator.setAppRecord("APP1", "APP_VALUE1");
-    registryOperator.setAppRecord("APP2", "APP_VALUE2");
-    registryOperator.setAppRecord("APP3", "APP_VALUE3");
-    registryOperator.setAppRecord("APP1", "APP_VALUE1_UPDATE");
-    registryOperator.setAppRecord("APP4", "APP_VALUE4");
-    registryOperator.updateApp();
-    
-    registryOperator.setContainerRecord("CTN_1", "CTN1", "CTN_VALUE1");
-    registryOperator.setContainerRecord("CTN_1", "CTN2", "CTN_VALUE2");
-    registryOperator.setContainerRecord("CTN_1", "CTN3", "CTN_VALUE3");
-    registryOperator.setContainerRecord("CTN_1", "CTN1", "CTN_VALUE1_UPDATE");
-    registryOperator.setContainerRecord("CTN_1", "CTN4", "CTN_VALUE4");
-    registryOperator.updateContainer("CTN_1");
-    
-    registryOperator.setContainerRecord("CTN_2", "CTN1", "CTN_VALUE1");
-    registryOperator.setContainerRecord("CTN_2", "CTN2", "CTN_VALUE2");
-    registryOperator.setContainerRecord("CTN_2", "CTN3", "CTN_VALUE3");
-    registryOperator.setContainerRecord("CTN_2", "CTN1", "CTN_VALUE1_UPDATE");
-    registryOperator.setContainerRecord("CTN_2", "CTN4", "CTN_VALUE4");
-    registryOperator.updateContainer("CTN_2");
-
-    registryOperator.setContainerRecord("CTN_3", "CTN1", "CTN_VALUE1");
-    registryOperator.setContainerRecord("CTN_3", "CTN2", "CTN_VALUE2");
-    registryOperator.setContainerRecord("CTN_3", "CTN3", "CTN_VALUE3");
-    registryOperator.setContainerRecord("CTN_3", "CTN1", "CTN_VALUE1_UPDATE");
-    registryOperator.setContainerRecord("CTN_3", "CTN4", "CTN_VALUE4");
-    registryOperator.updateContainer("CTN_3");
-    
-    registryOperator.deleteContainer("CTN_3");
-    
   }
   
   public static void main(String[] args) {

@@ -62,6 +62,7 @@ public class ActionResolve implements ClientAction {
         String image = record.get(NarwhalConstant.IMAGE);
         String status = record.get(NarwhalConstant.STATUS);
         String command = record.get(NarwhalConstant.COMMAND);
+        //TODO: format the records output
       }
     }
     return true;
