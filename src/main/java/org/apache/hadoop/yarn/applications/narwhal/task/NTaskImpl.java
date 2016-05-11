@@ -154,10 +154,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
         if (currentWorkerSucceed(nTask)) {
           LOG.info("All " + nTask.getID() + " 's worker finished");
           nTask.workers.clear();
-          TaskEvent event = new TaskEvent(taskEvent.getTaskID(),
-              TaskEventType.TASK_LAUNCH);
-          event.setContainer(nTask.getContainer());
-          nTask.eventHandler.handle(event);
+          postTaskLaunchEvent(nTask, taskEvent.getTaskID());
           return TaskState.READY;
         }
         LOG.info("** new Worker **");
@@ -174,15 +171,17 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
         //state unchanged, wait for worker succeed here
         return TaskState.SCHEDULED;
       } else {
-        TaskEvent event = new TaskEvent(taskEvent.getTaskID(),
-            TaskEventType.TASK_LAUNCH);
-        event.setContainer(nTask.getContainer());
-        setContainerScheduledRecord(nTask);
-        nTask.eventHandler.handle(event);
+        postTaskLaunchEvent(nTask, taskEvent.getTaskID());
         return TaskState.READY;
       }
     }
-    
+    private void postTaskLaunchEvent(NTaskImpl nTask, TaskId taskid) {
+      TaskEvent event = new TaskEvent(taskid,
+          TaskEventType.TASK_LAUNCH);
+      event.setContainer(nTask.getContainer());
+      setContainerScheduledRecord(nTask);
+      nTask.eventHandler.handle(event);
+    }
     private void setContainerScheduledRecord(NTaskImpl nTask) {
       Container allocatedContainer = nTask.container;
       String containerIdStr = allocatedContainer.getId().toString();

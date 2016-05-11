@@ -246,7 +246,7 @@ public class ActionSubmitApp implements ClientAction {
               + "appId=" + appId.getId()
               + ", appDiagnostics=" + report.getDiagnostics()
               + ", appQueue=" + report.getQueue()
-              + ", progress= " + report.getProgress() * 100 + "%");
+              + ", progress= " + String.format("%.1f",report.getProgress()*100) + "%");
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       if (YarnApplicationState.FINISHED == state) {

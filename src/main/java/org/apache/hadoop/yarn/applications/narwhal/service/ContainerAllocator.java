@@ -8,6 +8,7 @@ import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRespo
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.applications.narwhal.NAppMaster;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
+import org.apache.hadoop.yarn.applications.narwhal.job.NJobImpl;
 import org.apache.hadoop.yarn.applications.narwhal.task.TaskId;
 import org.apache.hadoop.yarn.applications.narwhal.task.ExecutorID;
 import org.apache.hadoop.yarn.applications.narwhal.worker.WorkerId;
@@ -26,6 +27,45 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
   private static final Log LOG = LogFactory.getLog(ContainerAllocator.class);
 
+  private class ResourceRecord {
+    private ExecutorID executorId;
+    private int mem;
+    private int vcores;
+    private String hosts;
+    private AMRMClient.ContainerRequest containerRequest;
+    private ContainerAllocatorEvent event;
+
+    public ResourceRecord(AMRMClient.ContainerRequest containerRequest, ContainerAllocatorEvent event,
+                          ExecutorID executorId, int mem, int vcores) {
+      this.containerRequest = containerRequest;
+      this.event = event;
+      this.executorId = executorId;
+      this.mem = mem;
+      this.vcores = vcores;
+      this.hosts = event.getHostname();
+    }
+
+    public int getMem() {
+      return mem;
+    }
+
+    public int getVcores() {
+      return vcores;
+    }
+
+    public String getHosts() {
+      return hosts;
+    }
+
+    public ContainerAllocatorEvent getEvent() {
+      return event;
+    }
+
+    public AMRMClient.ContainerRequest getContainerRequest() {
+      return containerRequest;
+    }
+  }
+
   private AMRMClientAsync amRMClientAsync;
 
   private AMRMClientAsync.CallbackHandler allocListener;
@@ -35,10 +75,12 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
   private ConcurrentHashMap<ContainerId, ExecutorID> startedContainers =
       new ConcurrentHashMap<>();
 
-  private int allocatedContainerMaxNum = 0;
-  private int allocatedContainerNum = 0;
-  private int completedContainerNum = 0;
-  private int startedContainerNum = 0;
+  private ConcurrentHashMap<ExecutorID, ResourceRecord> resourceRecords =
+      new ConcurrentHashMap<>();
+
+  private int maxMem = 0;
+  private int maxVcores = 0;
+
   @Override
   public void handle(ContainerAllocatorEvent containerAllocatorEvent) {
     try {
@@ -72,7 +114,6 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
   public void addStartedContainer(ContainerAllocatorEvent event) {
     startedContainers.put(event.getId().getContainerId(), event.getId());
-    startedContainerNum++;
   }
 
   @Override
@@ -100,7 +141,10 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     try {
       RegisterApplicationMasterResponse response = amRMClientAsync.registerApplicationMaster(
         hostname,-1,"");
-      LOG.info("Narwhal AM registered: " + hostname);
+      maxMem = response.getMaximumResourceCapability().getMemory();
+      maxVcores = response.getMaximumResourceCapability().getVirtualCores();
+      LOG.info("Narwhal AM registered: " + hostname +
+          "; Max mems:" + maxMem + "; Max vcores:" + maxVcores);
     } catch (YarnException e) {
       e.printStackTrace();
     } catch (IOException e) {
@@ -120,19 +164,23 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     }
   }
 
-  //TODO: Zhankun: handle situation that no resource available
   private void setupAndAddContainer(ContainerAllocatorEvent event) {
-    LOG.info("allocate container from AM");
-    //setup the ContainerRequest
-    //amRMclient.addContainerRequest()
+    LOG.info("submit container request to AM");
     Priority pri = Priority.newInstance(event.getPriority());
     Resource capability = event.getCapability();
     String[] nodes = new String[1];
     nodes[0] = event.getHostname();
+    if (maxMem < capability.getMemory() |
+        maxVcores < capability.getVirtualCores()) {
+      LOG.warn("Exceeds cluster max resource for " + event.getId() + ", exiting.");
+      eventHandler.handle(new JobEvent(context.getJob().getID(),JobEventType.JOB_ERROR));
+      return;
+    }
     AMRMClient.ContainerRequest request = new AMRMClient.ContainerRequest(capability,nodes,null,pri);
     amRMClientAsync.addContainerRequest(request);
     pendingTasks.add(event.getId());
-    allocatedContainerMaxNum++;
+    resourceRecords.put(event.getId(),
+        new ResourceRecord(request, event, event.getId(), capability.getMemory(), capability.getVirtualCores()));
   }
 
   private void releaseContainer() {
@@ -144,6 +192,24 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
     private final Log LOG = LogFactory.getLog(RMCallbackHandler.class);
 
+    //TODO: check node label
+    public boolean meetContainerNeeds(ExecutorID executorId, Container allocatedContainer) {
+      boolean flag = false;
+      ResourceRecord record = resourceRecords.get(executorId);
+      if (record == null) {
+        LOG.warn("No ResourceRecord found in resource list for" + executorId);
+      } else if (record.getMem() <= allocatedContainer.getResource().getMemory() &&
+          record.getVcores() <= allocatedContainer.getResource().getVirtualCores()) {
+        flag = true;
+      } else {
+        LOG.info(allocatedContainer.getId() + " don't meet "
+            + executorId + "'s needs. allocated(mem:" + allocatedContainer.getResource().getMemory()
+            + ", vcores:" + allocatedContainer.getResource().getVirtualCores()
+            + ") vs expected(mem:" + record.getMem()
+            + ", vcores:" + record.getVcores() + ")");
+      }
+      return flag;
+    }
 
     public void postExecutorCompleteEvent(ContainerId containerId, ContainerStatus containerStatus) {
       Iterator<ContainerId> it = startedContainers.keySet().iterator();
@@ -172,9 +238,11 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
         LOG.info("ContainerStatus for containerID: " + containerStatus.getContainerId() +
         ", state: " + containerStatus.getState() + ", exitCode: " + containerStatus.getExitStatus());
         if (containerStatus.getState().equals(ContainerState.COMPLETE)) {
-          postExecutorCompleteEvent(containerStatus.getContainerId(), containerStatus);
-          completedContainerNum++;
-          startedContainerNum--;
+          if (startedContainers.get(containerStatus.getContainerId()) != null) {
+            postExecutorCompleteEvent(containerStatus.getContainerId(), containerStatus);
+          } else {
+            LOG.info("Got response after release container: " + containerStatus.getContainerId());
+          }
         }
       }
 
@@ -182,14 +250,21 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
     @Override
     public void onContainersAllocated(List<Container> list) {
-      //TODO: Zhankun. no assign policy now, just FIFO. should check the resource/node label and then assign containers to tasks
+      //given a container, select a matching executor to assign to.
+      List<Container> unNeededContainers = new LinkedList<>();
       for (Container allocatedContainer : list) {
         if (pendingTasks.size() == 0) {
-          //TODO: zhankun. seems this unreleased container will cause error when stop AMRM client
+          //TODO: FIXME. seems this unreleased container will cause error when stop AMRM client
           LOG.info("All pendingTasks are scheduled, skip. Remaining allocatedContainer size from RM:" + list.size());
-          break;
+          unNeededContainers.add(allocatedContainer);
+          continue;
         }
-        ExecutorID id = pendingTasks.get(0);
+        ExecutorID id = selectExecutor(allocatedContainer);
+        if (id == null) {
+          LOG.info("No matching executor for this container, add it to be released later: " + allocatedContainer.getId());
+          unNeededContainers.add(allocatedContainer);
+          continue;
+        }
         id.setContainerId(allocatedContainer.getId());
         if (id instanceof TaskId) {
           TaskEvent taskEvent = new TaskEvent((TaskId) id, TaskEventType.TASK_SETUP);
@@ -205,9 +280,36 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
           LOG.info("Allocated " + allocatedContainer.getId() + " to " + id);
           eventHandler.handle(workerEvent);
         }
-        pendingTasks.remove(0);
-        allocatedContainerNum++;
       }
+      //release the unneeded container
+      if (unNeededContainers.size() > 0) {
+        for (Container container : unNeededContainers) {
+          amRMClientAsync.releaseAssignedContainer(container.getId());
+          LOG.info("Release the unneeded container: " + container.getId());
+        }
+        reSetupAndAddContainer();
+      }
+    }
+
+    private void reSetupAndAddContainer() {
+      for (ExecutorID executorId : pendingTasks) {
+        ResourceRecord record = resourceRecords.get(executorId);
+        amRMClientAsync.addContainerRequest(record.getContainerRequest());
+        LOG.info("Re-submit containerRequest for: " + executorId);
+      }
+    }
+
+    //FIFO. Choose a executor to run with this container
+    private ExecutorID selectExecutor(Container allocatedContainer) {
+      ExecutorID executorId;
+      for (Iterator<ExecutorID> it = pendingTasks.iterator(); it.hasNext();) {
+        executorId = it.next();
+        if (meetContainerNeeds(executorId,allocatedContainer)) {
+          it.remove();
+          return executorId;
+        }
+      }
+      return null;
     }
 
     @Override
@@ -222,15 +324,13 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
 
     @Override
     public float getProgress() {
-      if (allocatedContainerNum == 0) {
+      NJobImpl job = (NJobImpl)context.getJob();
+      if (job == null) {
         return 0;
       }
-      //TODO: Zhankun FixMe. find a better way to compute the progress and restrict the float precision
-      float estimatedMaxProgress = (float)1/(float)allocatedContainerMaxNum;
-      float expectedProgress = (float)(completedContainerNum)/(float)allocatedContainerNum;
-      float estimatedProgress = (float)startedContainerNum/(float)allocatedContainerNum;
-      float temp = estimatedProgress < estimatedMaxProgress ? estimatedProgress:estimatedMaxProgress;
-      return expectedProgress > temp?expectedProgress:temp;
+      //TODO:Fix me. there should return a non-zero value although there is no task finished
+      float actualProgress = (float)job.getFinishedTasksCount()/(float)job.getTasks().size();
+      return actualProgress;
     }
 
     @Override

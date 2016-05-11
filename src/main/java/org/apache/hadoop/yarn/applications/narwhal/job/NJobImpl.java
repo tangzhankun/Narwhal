@@ -46,6 +46,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
   private Lock readLock;
   private Lock writeLock;
   private LinkedHashMap<TaskId, Task> tasks = new LinkedHashMap<>();
+
   private int finishedTasksCount = 0;
   private NRegistryOperator nRegistryOperator;
 
@@ -246,6 +247,9 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
     return getStateMachine().getCurrentState();
   }
 
+  public int getFinishedTasksCount() {
+    return finishedTasksCount;
+  }
   @Override
   public void handle(JobEvent jobEvent) {
     LOG.info("Processing " + jobEvent.getJobId() + " of type " + jobEvent.getType());
