@@ -9,6 +9,7 @@
 
   <properties>
     <hadoop.version>2.7.2</hadoop.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   <dependencies>
     <dependency>
@@ -75,6 +76,11 @@
       <artifactId>hadoop-yarn-client</artifactId>
       <version>${hadoop.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-yarn-registry</artifactId>
+      <version>${hadoop.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -109,6 +115,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
+        <version>2.6</version>
         <configuration>
           <archive>
             <manifest>
@@ -120,6 +127,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
         <configuration>
           <source>1.7</source>
           <target>1.7</target>

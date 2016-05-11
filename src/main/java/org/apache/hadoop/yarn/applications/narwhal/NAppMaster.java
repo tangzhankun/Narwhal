@@ -8,6 +8,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
+import org.apache.hadoop.yarn.applications.narwhal.common.NRegistryOperator;
 import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfig;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.JobEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.TaskEventDispatcher;
@@ -35,6 +36,7 @@ import java.util.Map;
 public class NAppMaster {
 
   private static final Log LOG = LogFactory.getLog(NAppMaster.class);
+  
   private Configuration conf;
   private AppContext context;
   private Dispatcher dispatcher;
@@ -47,7 +49,7 @@ public class NAppMaster {
   protected ApplicationAttemptId applicationAttemptId;
   protected NarwhalConfig narwhalConfig;
   private static final String configFilePath = "artifact.json";
-
+  
   public class AppContext{
     private final Configuration conf;
     public AppContext(Configuration conf) {
@@ -153,8 +155,6 @@ public class NAppMaster {
     
     String configPath = "./" + configFilePath;
     narwhalConfig = deserializeObj(configPath);
-    LOG.info("<----config file path : "+ configPath+ "---->");
-    LOG.info("<----appname : "+ narwhalConfig.getName() + "---->");
     
     return true;
   }
@@ -232,7 +232,7 @@ public class NAppMaster {
   	}
     return narwhalConfig;
   }
-
+  
   public static void main(String[] args) {
     boolean result = false;
     try {
