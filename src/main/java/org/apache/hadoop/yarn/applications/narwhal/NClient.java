@@ -9,6 +9,7 @@ import org.apache.hadoop.yarn.applications.narwhal.client.ActionListRegistedApp;
 import org.apache.hadoop.yarn.applications.narwhal.client.ActionResolve;
 import org.apache.hadoop.yarn.applications.narwhal.client.ActionSubmitApp;
 import org.apache.hadoop.yarn.applications.narwhal.client.ClientAction;
+import org.apache.hadoop.yarn.applications.narwhal.common.Log4jUtil;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
 /**
@@ -44,6 +45,7 @@ public class NClient {
   }
 
   public static void main(String[] args) {
+    Log4jUtil.loadProperties(NClient.class, "/Nlog4j.properties");
     boolean result = false;
     try {
       NClient nClient = new NClient();
