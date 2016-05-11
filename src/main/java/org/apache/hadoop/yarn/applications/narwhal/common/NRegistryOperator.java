@@ -1,4 +1,4 @@
-package org.apache.hadoop.yarn.applications.narwhal.registry;
+package org.apache.hadoop.yarn.applications.narwhal.common;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

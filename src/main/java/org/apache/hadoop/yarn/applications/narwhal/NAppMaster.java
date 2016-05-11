@@ -12,6 +12,7 @@ import org.apache.hadoop.registry.client.types.yarn.YarnRegistryAttributes;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
+import org.apache.hadoop.yarn.applications.narwhal.common.NRegistryOperator;
 import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfig;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.JobEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.TaskEventDispatcher;
@@ -19,7 +20,6 @@ import org.apache.hadoop.yarn.applications.narwhal.dispatcher.WorkerEventDispatc
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.job.Job;
 import org.apache.hadoop.yarn.applications.narwhal.job.NJobImpl;
-import org.apache.hadoop.yarn.applications.narwhal.registry.NRegistryOperator;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerAllocator;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerLauncher;
 import org.apache.hadoop.yarn.applications.narwhal.state.JobState;
