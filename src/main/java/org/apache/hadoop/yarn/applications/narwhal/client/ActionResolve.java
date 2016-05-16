@@ -52,20 +52,27 @@ public class ActionResolve implements ClientAction {
     if (containers == null) {
       LOG.info(applicationId + "cannot be found");
     } else {
-      LOG.info(containers);
-      Set<String> containerIds = containers.keySet();
-      for (String containerId : containerIds) {
-        ServiceRecord record = containers.get(containerId);
-        String createdTime = record.get(NarwhalConstant.CREATED);
-        String host = record.get(NarwhalConstant.HOST);
-        String port = record.get(NarwhalConstant.PORT);
-        String image = record.get(NarwhalConstant.IMAGE);
-        String status = record.get(NarwhalConstant.STATUS);
-        String command = record.get(NarwhalConstant.COMMAND);
-        //TODO: format the records output
-      }
+      LOG.info(formatOutput(containers));
     }
     return true;
+  }
+
+  private String formatOutput(Map<String, ServiceRecord> containers) {
+    String format = "  %-40s %-20s %-40s %-25s %-15s %-15s %s\n";
+    StringBuilder builder = new StringBuilder().append("\n\n");
+    builder.append(String.format(format, NarwhalConstant.CONTAINER_ID, NarwhalConstant.IMAGE, NarwhalConstant.COMMAND, NarwhalConstant.CREATED, NarwhalConstant.STATUS, NarwhalConstant.HOST, NarwhalConstant.PORT));
+    Set<String> containerIds = containers.keySet();
+    for (String containerId : containerIds) {
+      ServiceRecord record = containers.get(containerId);
+      String createdTime = record.get(NarwhalConstant.CREATED);
+      String host = record.get(NarwhalConstant.HOST);
+      String port = record.get(NarwhalConstant.PORT);
+      String image = record.get(NarwhalConstant.IMAGE);
+      String status = record.get(NarwhalConstant.STATUS);
+      String command = record.get(NarwhalConstant.COMMAND);
+      builder.append(String.format(format, containerId, image, command, createdTime, status, host, port));
+    }
+    return builder.toString();
   }
 
 }

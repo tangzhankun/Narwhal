@@ -30,7 +30,6 @@ public class ActionListRegistedApp implements ClientAction {
 
   @Override
   public boolean execute() throws YarnException, IOException, InterruptedException {
-    LOG.info("registry list");
     List<String> narwhalApps = registryOperator.listNarwhalApps();
     if (narwhalApps.size() == 0) {
       LOG.info("no narwhal applications");

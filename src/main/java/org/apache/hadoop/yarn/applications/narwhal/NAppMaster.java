@@ -8,7 +8,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
-import org.apache.hadoop.yarn.applications.narwhal.common.NRegistryOperator;
 import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfig;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.JobEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.TaskEventDispatcher;
@@ -132,7 +131,7 @@ public class NAppMaster {
   }
 
   protected void createJob() {
-    job = new NJobImpl("Narwhal job", applicationAttemptId.toString(), conf, context.getEventHandler());
+    job = new NJobImpl("Narwhal job", applicationAttemptId, conf, context.getEventHandler());
     //init job event
     JobEvent jobEvent = new JobEvent(job.getID(), JobEventType.JOB_INIT);
     jobEvent.setNarwhalConfig(narwhalConfig);
