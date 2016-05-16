@@ -146,7 +146,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
       //because the taskEvent without container is posted from worker
       if (taskEvent.getContainer() != null) {
         nTask.setContainer(taskEvent.getContainer());
-        setContainerRecord(nTask);
+        setContainerScheduledRecord(nTask);
       }
       //if need to load image file , new a worker and post event to run it
       //when worker succeed in loading image, post a TASK_LAUNCH event
@@ -182,7 +182,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
       }
     }
     
-    private void setContainerRecord(NTaskImpl nTask) {
+    private void setContainerScheduledRecord(NTaskImpl nTask) {
       Container allocatedContainer = nTask.container;
       String containerIdStr = allocatedContainer.getId().toString();
       nTask.nRegistryOperator.setContainerRecord(containerIdStr, NarwhalConstant.HOST, allocatedContainer.getNodeId().getHost());
@@ -212,6 +212,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     @Override
     public void transition(NTaskImpl nTask, TaskEvent taskEvent) {
       LOG.info("**TaskLaunchTransition**");
+      setContainerRunningRecord(nTask);
       //post event to containerLauncher to launch the container
       ContainerLauncherEvent containerLauncherEvent = new ContainerLauncherEvent(taskEvent.getTaskID(),
           taskEvent.getContainer(),
@@ -220,6 +221,13 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
       containerLauncherEvent.setDockerImageName(nTask.getImageName());
       nTask.eventHandler.handle(containerLauncherEvent);
     }
+
+    private void setContainerRunningRecord(NTaskImpl nTask) {
+      nTask.nRegistryOperator.setContainerRecord(nTask.container.getId().toString(), NarwhalConstant.COMMAND, nTask.userCmd);
+      nTask.nRegistryOperator.setContainerRecord(nTask.container.getId().toString(), NarwhalConstant.IMAGE, nTask.imageName);
+      nTask.nRegistryOperator.setContainerRecord(nTask.container.getId().toString(), NarwhalConstant.STATUS, TaskState.RUNNING.toString());
+      nTask.nRegistryOperator.updateContainer(nTask.container.getId().toString());
+    }
   }
 
   private static class CompleteTransition implements
@@ -227,17 +235,9 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
     @Override
     public TaskState transition(NTaskImpl nTask, TaskEvent taskEvent) {
-      setContainerRecord(nTask);
       //post an JOB_COMPLETE event
       nTask.eventHandler.handle(new JobEvent(taskEvent.getTaskID().getJobId(), JobEventType.JOB_COMPLETED));
       return TaskState.SUCCEED;
-    }
-    
-    private void setContainerRecord(NTaskImpl nTask) {
-      nTask.nRegistryOperator.setContainerRecord(nTask.container.getId().toString(), NarwhalConstant.COMMAND, nTask.userCmd);
-      nTask.nRegistryOperator.setContainerRecord(nTask.container.getId().toString(), NarwhalConstant.IMAGE, nTask.imageName);
-      nTask.nRegistryOperator.setContainerRecord(nTask.container.getId().toString(), NarwhalConstant.STATUS, TaskState.RUNNING.toString());
-      nTask.nRegistryOperator.updateContainer(nTask.container.getId().toString());
     }
   }
 

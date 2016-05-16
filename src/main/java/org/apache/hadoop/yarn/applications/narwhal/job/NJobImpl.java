@@ -132,7 +132,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
         int count = 0;
         for (Task task : allTasks) {
           if (task.getStatus().equals(TaskState.SUCCEED)) {
-            setContainerRecord(nJob, task);
+            setContainerSucceedRecord(nJob, (NTaskImpl)task);
             count++;
           }
         }
@@ -146,7 +146,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
       }
     }
     
-    private void setContainerRecord(NJobImpl nJob, Task task) {
+    private void setContainerSucceedRecord(NJobImpl nJob, NTaskImpl task) {
       Container container = task.getContainer();
       String startedContainerId  = container.getId().toString();
       nJob.nRegistryOperator.setContainerRecord(startedContainerId.toString(), NarwhalConstant.STATUS, TaskState.SUCCEED.toString());
