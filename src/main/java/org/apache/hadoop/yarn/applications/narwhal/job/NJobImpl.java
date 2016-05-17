@@ -3,6 +3,12 @@ package org.apache.hadoop.yarn.applications.narwhal.job;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.applications.narwhal.common.DateUtil;
+import org.apache.hadoop.yarn.applications.narwhal.common.NRegistryOperator;
+import org.apache.hadoop.yarn.applications.narwhal.common.NarwhalConstant;
 import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfig;
 import org.apache.hadoop.yarn.applications.narwhal.event.JobEvent;
 import org.apache.hadoop.yarn.applications.narwhal.event.JobEventType;
@@ -42,6 +48,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
   private Lock writeLock;
   private LinkedHashMap<TaskId, Task> tasks = new LinkedHashMap<>();
   private int finishedTasksCount = 0;
+  private NRegistryOperator nRegistryOperator;
 
   private static final ErrorTransition ERROR_TRANSITION =
       new ErrorTransition();
@@ -55,8 +62,14 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
     @Override
     public JobState transition(NJobImpl nJob, JobEvent jobEvent) {
       LOG.info("**JobInitTransition**");
+      setAppRecord(nJob);
       createTasks(nJob, jobEvent.getNarwhalConfig());
       return JobState.INITED;
+    }
+    
+    private void setAppRecord(NJobImpl nJob){
+      nJob.nRegistryOperator.setAppRecord(NarwhalConstant.CREATED, DateUtil.getCurrentTime());
+      nJob.nRegistryOperator.updateApp();    	
     }
 
     private void createTasks(NJobImpl nJob, NarwhalConfig narwhalConfig) {
@@ -65,7 +78,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
         Task task = new NTaskImpl(nJob.getID(), i, nJob.eventHandler,
             narwhalConfig.getCmd(), (int)narwhalConfig.getCpus(),
             (int)narwhalConfig.getMem(), 0, narwhalConfig.getImage(),
-            narwhalConfig.isLocal(), narwhalConfig.getName());
+            narwhalConfig.isLocal(), narwhalConfig.getName(), nJob.nRegistryOperator);
         nJob.addTask(task);
       }
       LOG.info("create " + taskNum + " tasks.");
@@ -119,6 +132,7 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
         int count = 0;
         for (Task task : allTasks) {
           if (task.getStatus().equals(TaskState.SUCCEED)) {
+            setContainerSucceedRecord(nJob, (NTaskImpl)task);
             count++;
           }
         }
@@ -130,6 +144,13 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
       } else {
         return JobState.STARTED;
       }
+    }
+    
+    private void setContainerSucceedRecord(NJobImpl nJob, NTaskImpl task) {
+      Container container = task.getContainer();
+      String startedContainerId  = container.getId().toString();
+      nJob.nRegistryOperator.setContainerRecord(startedContainerId.toString(), NarwhalConstant.STATUS, TaskState.SUCCEED.toString());
+      nJob.nRegistryOperator.updateContainer(startedContainerId.toString());
     }
   }
 
@@ -183,16 +204,19 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
           KILL_TRANSITION)
       .installTopology();
 
-  public NJobImpl(String name, String appAttemptIdStr,
+  public NJobImpl(String name, ApplicationAttemptId appAttemptId,
                   Configuration conf, EventHandler eventHandler) {
     this.name = name;
-    this.jobId = new JobId(ConverterUtils.toApplicationAttemptId(appAttemptIdStr));
+    this.jobId = new JobId(ConverterUtils.toApplicationAttemptId(appAttemptId.toString()));
     this.conf = conf;
     this.eventHandler = eventHandler;
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
     this.stateMachine = stateMachineFactory.make(this);
+    
+    ApplicationId applicationId = appAttemptId.getApplicationId();
+    nRegistryOperator = new NRegistryOperator(applicationId.toString(), conf);
   }
 
   @Override

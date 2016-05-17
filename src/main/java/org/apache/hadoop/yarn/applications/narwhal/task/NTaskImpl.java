@@ -3,9 +3,11 @@ package org.apache.hadoop.yarn.applications.narwhal.task;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.applications.narwhal.common.DateUtil;
 import org.apache.hadoop.yarn.applications.narwhal.common.ImageUtil;
+import org.apache.hadoop.yarn.applications.narwhal.common.NRegistryOperator;
+import org.apache.hadoop.yarn.applications.narwhal.common.NarwhalConstant;
 import org.apache.hadoop.yarn.applications.narwhal.event.*;
 import org.apache.hadoop.yarn.applications.narwhal.state.TaskState;
 import org.apache.hadoop.yarn.applications.narwhal.job.JobId;
@@ -53,6 +55,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
   private LinkedHashMap<WorkerId, Worker> workers = new LinkedHashMap<>();
   private final EventHandler eventHandler;
+  private NRegistryOperator nRegistryOperator;
 
   private final StateMachine<TaskState, TaskEventType, TaskEvent> stateMachine;
 
@@ -81,7 +84,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
 
   public NTaskImpl(JobId jobId, int id, EventHandler eventHandler,
                    String userCmd, int cpu, int mem, int pri,
-                   String imageName, boolean useLocalImage, String appName) {
+                   String imageName, boolean useLocalImage, String appName, NRegistryOperator nRegistryOperator) {
     this.eventHandler = eventHandler;
     this.taskId = new TaskId(jobId, id);
     this.stateMachine = stateMachineFactory.make(this);
@@ -95,6 +98,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     this.isUsingLocalImage = useLocalImage;
     this.imageName = imageName;
     this.appName = appName;
+    this.nRegistryOperator = nRegistryOperator;
   }
 
   private static class ErrorTransition implements
@@ -142,6 +146,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
       //because the taskEvent without container is posted from worker
       if (taskEvent.getContainer() != null) {
         nTask.setContainer(taskEvent.getContainer());
+        setContainerScheduledRecord(nTask);
       }
       //if need to load image file , new a worker and post event to run it
       //when worker succeed in loading image, post a TASK_LAUNCH event
@@ -176,6 +181,16 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
         return TaskState.READY;
       }
     }
+    
+    private void setContainerScheduledRecord(NTaskImpl nTask) {
+      Container allocatedContainer = nTask.container;
+      String containerIdStr = allocatedContainer.getId().toString();
+      nTask.nRegistryOperator.setContainerRecord(containerIdStr, NarwhalConstant.HOST, allocatedContainer.getNodeId().getHost());
+      nTask.nRegistryOperator.setContainerRecord(containerIdStr, NarwhalConstant.PORT, String.valueOf(allocatedContainer.getNodeId().getPort()));
+      nTask.nRegistryOperator.setContainerRecord(containerIdStr, NarwhalConstant.CREATED, DateUtil.getCurrentTime());
+      nTask.nRegistryOperator.setContainerRecord(containerIdStr, NarwhalConstant.STATUS, TaskState.SCHEDULED.toString());
+      nTask.nRegistryOperator.updateContainer(containerIdStr);
+    }
     //TODO: zhankun, use counter to check this to avoid multiple worker issue
     public boolean currentWorkerSucceed(NTaskImpl nTask) {
       if (nTask.workers.size() == 0) {
@@ -197,6 +212,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     @Override
     public void transition(NTaskImpl nTask, TaskEvent taskEvent) {
       LOG.info("**TaskLaunchTransition**");
+      setContainerRunningRecord(nTask);
       //post event to containerLauncher to launch the container
       ContainerLauncherEvent containerLauncherEvent = new ContainerLauncherEvent(taskEvent.getTaskID(),
           taskEvent.getContainer(),
@@ -204,6 +220,13 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
       containerLauncherEvent.setUserCmd(nTask.getUserCmd());
       containerLauncherEvent.setDockerImageName(nTask.getImageName());
       nTask.eventHandler.handle(containerLauncherEvent);
+    }
+
+    private void setContainerRunningRecord(NTaskImpl nTask) {
+      nTask.nRegistryOperator.setContainerRecord(nTask.container.getId().toString(), NarwhalConstant.COMMAND, nTask.userCmd);
+      nTask.nRegistryOperator.setContainerRecord(nTask.container.getId().toString(), NarwhalConstant.IMAGE, nTask.imageName);
+      nTask.nRegistryOperator.setContainerRecord(nTask.container.getId().toString(), NarwhalConstant.STATUS, TaskState.RUNNING.toString());
+      nTask.nRegistryOperator.updateContainer(nTask.container.getId().toString());
     }
   }
 

@@ -1,6 +1,5 @@
 package org.apache.hadoop.yarn.applications.narwhal.task;
 
-
 import org.apache.hadoop.yarn.applications.narwhal.state.TaskState;
 import org.apache.hadoop.yarn.applications.narwhal.worker.Worker;
 import org.apache.hadoop.yarn.applications.narwhal.worker.WorkerId;

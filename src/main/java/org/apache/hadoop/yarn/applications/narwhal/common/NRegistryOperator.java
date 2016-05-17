@@ -56,17 +56,25 @@ public class NRegistryOperator {
     registryOperations.bind(path, containerRecords.get(containerIdAsName), BindFlags.OVERWRITE);
   }
 
-  public void updateApp() throws IOException {
-    putService();
+  public void updateApp() {
+    try {
+      putService();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
-  public void deleteApp() throws IOException {
-    String path = RegistryUtils.servicePath(user, serviceClass, appIdAsName);
-    boolean exists = registryOperations.exists(path);
-    if (exists) {
-      registryOperations.delete(path, true);
-    } else {
-      LOG.info(path + "cannot be found");
+  public void deleteApp() {
+    try {
+      String path = RegistryUtils.servicePath(user, serviceClass, appIdAsName);
+      boolean exists = registryOperations.exists(path);
+      if (exists) {
+        registryOperations.delete(path, true);
+      } else {
+        LOG.info(path + "cannot be found");
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 
@@ -94,18 +102,27 @@ public class NRegistryOperator {
     }
   }
 
-  public void updateContainer(String containerIdAsName) throws IOException {
-    putComponent(containerIdAsName);
+  public void updateContainer(String containerIdAsName) {
+    try {
+      putComponent(containerIdAsName);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
-  public void deleteContainer(String containerIdAsName) throws IOException {
-    String path = RegistryUtils.componentPath(user, serviceClass, appIdAsName, containerIdAsName);
-    boolean exists = registryOperations.exists(path);
-    if (exists) {
-      registryOperations.delete(path, false);
-    } else {
-      LOG.info(path + "cannot be found");
+  public void deleteContainer(String containerIdAsName) {
+    try {
+      String path = RegistryUtils.componentPath(user, serviceClass, appIdAsName, containerIdAsName);
+      boolean exists = registryOperations.exists(path);
+      if (exists) {
+        registryOperations.delete(path, false);
+      } else {
+        LOG.info(path + "cannot be found");
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+
   }
 
   public ServiceRecord resolveContainer(String containerIdAsName) throws IOException {
