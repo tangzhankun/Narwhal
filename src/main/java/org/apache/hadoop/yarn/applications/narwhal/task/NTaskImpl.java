@@ -238,7 +238,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     @Override
     public TaskState transition(NTaskImpl nTask, TaskEvent taskEvent) {
       //post an JOB_COMPLETE event
-    	setContainerSucceedRecord(nTask);
+      setContainerSucceedRecord(nTask);
       nTask.eventHandler.handle(new JobEvent(taskEvent.getTaskID().getJobId(), JobEventType.JOB_COMPLETED));
       return TaskState.SUCCEED;
     }

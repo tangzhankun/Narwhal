@@ -234,7 +234,7 @@ public class NAppMaster {
   }
   
   public static void main(String[] args) {
-  	Log4jUtil.loadProperties(NClient.class, "/Nlog4j.properties");
+//  	Log4jUtil.loadProperties(NClient.class, "/Nlog4j.properties");
     boolean result = false;
     try {
       NAppMaster nAM = new NAppMaster();
