@@ -8,6 +8,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
+import org.apache.hadoop.yarn.applications.narwhal.common.Log4jUtil;
 import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfig;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.JobEventDispatcher;
 import org.apache.hadoop.yarn.applications.narwhal.dispatcher.TaskEventDispatcher;
@@ -233,6 +234,7 @@ public class NAppMaster {
   }
   
   public static void main(String[] args) {
+  	Log4jUtil.loadProperties(NClient.class, "/Nlog4j.properties");
     boolean result = false;
     try {
       NAppMaster nAM = new NAppMaster();

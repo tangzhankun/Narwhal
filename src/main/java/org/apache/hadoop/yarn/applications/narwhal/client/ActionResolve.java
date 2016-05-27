@@ -50,7 +50,7 @@ public class ActionResolve implements ClientAction {
   public boolean execute() throws YarnException, IOException {
     Map<String, ServiceRecord> containers = registryOperator.resolveContainers();
     if (containers == null) {
-      LOG.info(applicationId + "cannot be found");
+      LOG.info(applicationId + " cannot be found");
     } else {
       LOG.info(formatOutput(containers));
     }
