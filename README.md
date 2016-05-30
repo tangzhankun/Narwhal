@@ -36,7 +36,7 @@ cat <<'EOF' >> artifact.json
     "instances": 2,
     "cmd": "echo hello",
     "image": "centos",
-    "local": true
+    "localImage": true
 }
 EOF
 ```

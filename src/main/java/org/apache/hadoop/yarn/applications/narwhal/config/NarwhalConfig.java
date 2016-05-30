@@ -19,9 +19,9 @@ public class NarwhalConfig implements Serializable {
 
     private String image;
 
-    private boolean local;
+    private boolean localImage;
 
-    NarwhalConfig(String name, double cpus, double mem, int instances, String cmd, List<String> args, String image, boolean local) {
+    NarwhalConfig(String name, double cpus, double mem, int instances, String cmd, List<String> args, String image, boolean localImage) {
         this.name = name;
         this.cpus = cpus;
         this.mem = mem;
@@ -29,7 +29,7 @@ public class NarwhalConfig implements Serializable {
         this.cmd = cmd;
         this.args = args;
         this.image = image;
-        this.local = local;
+        this.localImage = localImage;
     }
 
     public String getName() {
@@ -60,7 +60,7 @@ public class NarwhalConfig implements Serializable {
         return image;
     }
 
-    public boolean isLocal() {
-        return local;
+    public boolean isLocalImage() {
+        return localImage;
     }
 }
