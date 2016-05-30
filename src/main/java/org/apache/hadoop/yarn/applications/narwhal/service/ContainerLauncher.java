@@ -109,7 +109,7 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
       List<String> commands = new ArrayList<>();
       //cmd
       Vector<CharSequence> vargs = new Vector<>(5);
-      vargs.add(cmd);
+      vargs.add("(" + cmd + ")");
       vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
       vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
       StringBuilder command = new StringBuilder();

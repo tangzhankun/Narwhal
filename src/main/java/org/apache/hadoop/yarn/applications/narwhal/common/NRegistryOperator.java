@@ -71,7 +71,7 @@ public class NRegistryOperator {
       if (exists) {
         registryOperations.delete(path, true);
       } else {
-        LOG.info(path + "cannot be found");
+        LOG.info(path + " cannot be found");
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -85,7 +85,7 @@ public class NRegistryOperator {
       ServiceRecord record = registryOperations.resolve(path);
       return record;
     } else {
-      LOG.info(path + "cannot be found");
+      LOG.info(path + " cannot be found");
       return null;
     }
   }
@@ -97,7 +97,7 @@ public class NRegistryOperator {
       List<String> appIds = registryOperations.list(path);
       return appIds;
     } else {
-      LOG.info(path + "cannot be found");
+      LOG.info(path + " cannot be found");
       return new ArrayList<String>();
     }
   }
@@ -117,7 +117,7 @@ public class NRegistryOperator {
       if (exists) {
         registryOperations.delete(path, false);
       } else {
-        LOG.info(path + "cannot be found");
+        LOG.info(path + " cannot be found");
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -132,7 +132,7 @@ public class NRegistryOperator {
       ServiceRecord record = registryOperations.resolve(path);
       return record;
     } else {
-      LOG.info(path + "cannot be found");
+      LOG.info(path + " cannot be found");
       return null;
     }
   }
@@ -160,7 +160,7 @@ public class NRegistryOperator {
       List<String> containerIds = registryOperations.list(path);
       return containerIds;
     } else {
-      LOG.info(path + "cannot be found");
+      LOG.info(path + " cannot be found");
       return new ArrayList<String>();
     }
 

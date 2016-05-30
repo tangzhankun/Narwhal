@@ -125,6 +125,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
       containerAllocatorEvent.setHostname("");
       nTask.eventHandler.handle(containerAllocatorEvent);
     }
+
   }
 
   private static class KillTransition implements
@@ -146,7 +147,6 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
       //because the taskEvent without container is posted from worker
       if (taskEvent.getContainer() != null) {
         nTask.setContainer(taskEvent.getContainer());
-        setContainerScheduledRecord(nTask);
       }
       //if need to load image file , new a worker and post event to run it
       //when worker succeed in loading image, post a TASK_LAUNCH event
@@ -177,6 +177,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
         TaskEvent event = new TaskEvent(taskEvent.getTaskID(),
             TaskEventType.TASK_LAUNCH);
         event.setContainer(nTask.getContainer());
+        setContainerScheduledRecord(nTask);
         nTask.eventHandler.handle(event);
         return TaskState.READY;
       }
@@ -191,6 +192,7 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
       nTask.nRegistryOperator.setContainerRecord(containerIdStr, NarwhalConstant.STATUS, TaskState.SCHEDULED.toString());
       nTask.nRegistryOperator.updateContainer(containerIdStr);
     }
+
     //TODO: zhankun, use counter to check this to avoid multiple worker issue
     public boolean currentWorkerSucceed(NTaskImpl nTask) {
       if (nTask.workers.size() == 0) {
@@ -236,8 +238,16 @@ public class NTaskImpl implements Task, EventHandler<TaskEvent>{
     @Override
     public TaskState transition(NTaskImpl nTask, TaskEvent taskEvent) {
       //post an JOB_COMPLETE event
+      setContainerSucceedRecord(nTask);
       nTask.eventHandler.handle(new JobEvent(taskEvent.getTaskID().getJobId(), JobEventType.JOB_COMPLETED));
       return TaskState.SUCCEED;
+    }
+    
+    private void setContainerSucceedRecord(NTaskImpl nTask) {
+      Container container = nTask.getContainer();
+      String startedContainerId  = container.getId().toString();
+      nTask.nRegistryOperator.setContainerRecord(startedContainerId.toString(), NarwhalConstant.STATUS, TaskState.SUCCEED.toString());
+      nTask.nRegistryOperator.updateContainer(startedContainerId.toString());
     }
   }
 

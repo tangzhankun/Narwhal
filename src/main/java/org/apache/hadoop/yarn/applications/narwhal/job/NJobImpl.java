@@ -5,7 +5,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.applications.narwhal.common.DateUtil;
 import org.apache.hadoop.yarn.applications.narwhal.common.NRegistryOperator;
 import org.apache.hadoop.yarn.applications.narwhal.common.NarwhalConstant;
@@ -132,7 +131,6 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
         int count = 0;
         for (Task task : allTasks) {
           if (task.getStatus().equals(TaskState.SUCCEED)) {
-            setContainerSucceedRecord(nJob, (NTaskImpl)task);
             count++;
           }
         }
@@ -144,13 +142,6 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
       } else {
         return JobState.STARTED;
       }
-    }
-    
-    private void setContainerSucceedRecord(NJobImpl nJob, NTaskImpl task) {
-      Container container = task.getContainer();
-      String startedContainerId  = container.getId().toString();
-      nJob.nRegistryOperator.setContainerRecord(startedContainerId.toString(), NarwhalConstant.STATUS, TaskState.SUCCEED.toString());
-      nJob.nRegistryOperator.updateContainer(startedContainerId.toString());
     }
   }
 
