@@ -125,7 +125,7 @@ public class ActionSubmitApp implements ClientAction {
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     FileSystem fs = FileSystem.get(conf);
     //upload the local docker image
-    if (narwhalConfig.isLocal()) {
+    if (narwhalConfig.isLocalImage()) {
       boolean dockerImgUploaded = uploadDockerImage(fs, appId.toString(), narwhalConfig.getImage());
       if (dockerImgUploaded) {
         LOG.info("Local Docker image " + narwhalConfig.getImage() + " uploaded successfully");

@@ -35,7 +35,7 @@ public class NarwhalConfigParser {
         }
         if (obj.has("image"))
             builder.setImage(obj.getString("image"));
-        if (obj.has("local"))
-            builder.setLocal(obj.getBoolean("local"));
+        if (obj.has("localImage"))
+            builder.setLocalImage(obj.getBoolean("localImage"));
     }
 }

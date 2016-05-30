@@ -17,11 +17,11 @@ public class NarwhalConfigBuilder {
 
     private String image;
 
-    private boolean local;
+    private boolean localImage;
 
     public NarwhalConfig build() throws BuilderException {
         check();
-        return new NarwhalConfig(name, cpus, mem, instances, cmd, args, image, local);
+        return new NarwhalConfig(name, cpus, mem, instances, cmd, args, image, localImage);
     }
 
     private void check() throws BuilderException {
@@ -95,12 +95,12 @@ public class NarwhalConfigBuilder {
         this.image = image.trim();
     }
 
-    boolean isLocal() {
-        return local;
+    boolean isLocalImage() {
+        return localImage;
     }
 
-    void setLocal(boolean local) {
-        this.local = local;
+    void setLocalImage(boolean localImage) {
+        this.localImage = localImage;
     }
 
 }
