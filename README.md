@@ -16,6 +16,7 @@ Narwhal is a YARN application for Docker container orchestration for YARN.
 - [ ] Dynamically scale tasks
 - [x] Remove appname submission to AM
 - [ ] Use MD5 hash to check if image has already been loaded
+- [ ] Support "YARN" containers
 
 ## Setting up and running Narwhal
 1. A LinuxContainerExecutor enabled hadoop cluster
@@ -23,20 +24,24 @@ Narwhal is a YARN application for Docker container orchestration for YARN.
 3. Prepare your Docker image. It should have the same user (and uid) in it which is also used when run Narwhal
 4. Clone, build and run Narwhal with the Docker image
 ```sh
-git clone git://github.com/intel-haoop/Narwhal
+git clone https://github.com/intel-hadoop/Narwhal.git
 cd Narwhal
 mvn clean package -DskipTests
 ```
 ```sh
-cat <<'EOF' >> artifact.json
+docker pull centos:latest
+cat <<'EOF' > artifact.json
 {
-    "name": "simple-docker",
+    "name": "hello-docker",
     "cpus": 2,
     "mem": 32,
     "instances": 2,
-    "cmd": "echo hello",
-    "image": "centos",
-    "localImage": true
+    "cmd": "echo \"hello docker\"",
+    "engine": {
+        "type": "DOCKER",
+        "image": "centos",
+        "localImage": true
+    }
 }
 EOF
 ```
