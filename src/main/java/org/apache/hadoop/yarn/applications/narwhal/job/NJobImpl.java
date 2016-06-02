@@ -231,6 +231,16 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
     }
   }
 
+  public float getProgress() {
+    List<Task> tasks = getTasks();
+    float progress = 0.0f;
+    for (Task task : tasks) {
+      TaskState state = task.getStatus();
+      progress += state.getProgress();
+    }
+    return progress/tasks.size();
+  }
+
   public List<Task> getTasks() {
     return new ArrayList<Task>(tasks.values());
   }
