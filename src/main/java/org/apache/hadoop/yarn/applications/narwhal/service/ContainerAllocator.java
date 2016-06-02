@@ -326,11 +326,9 @@ public class ContainerAllocator extends EventLoop implements EventHandler<Contai
     public float getProgress() {
       NJobImpl job = (NJobImpl)context.getJob();
       if (job == null) {
-        return 0;
+        return 0.0f;
       }
-      //TODO:Fix me. there should return a non-zero value although there is no task finished
-      float actualProgress = (float)job.getFinishedTasksCount()/(float)job.getTasks().size();
-      return actualProgress;
+      return job.getProgress();
     }
 
     @Override
