@@ -1,0 +1,9 @@
+{
+	"name": "yuqiang-docker",
+	"cpus": 2,
+	"mem": 2048,
+	"instances": 10,
+	"cmd": "sleep 15; cat /proc/1/cgroup",
+	"image": "centos_yarn",
+	"localImage": false
+}

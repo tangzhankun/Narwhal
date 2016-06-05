@@ -110,6 +110,11 @@ public class ActionSubmitApp implements ClientAction {
 
   @Override
   public boolean execute() throws YarnException, IOException, InterruptedException {
+    ApplicationId appId = submitAppContext();
+    return monitorApplicartion(appId);
+  }
+
+  public ApplicationId submitAppContext() throws YarnException, IOException, InterruptedException {
 
     yarnClient.start();
 
@@ -149,8 +154,7 @@ public class ActionSubmitApp implements ClientAction {
     appContext.setQueue(amQueue);
 
     yarnClient.submitApplication(appContext);
-
-    return monitorApplicartion(appId);
+    return appId;
   }
 
   private boolean uploadDockerImage(FileSystem fs, String appId, String image) throws IOException, InterruptedException {
@@ -204,12 +208,14 @@ public class ActionSubmitApp implements ClientAction {
         body.append(line);
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      LOG.info(e.getMessage());
     } finally {
-      try {
-        bufferReader.close();
-      } catch (IOException e) {
-        e.printStackTrace();
+      if (bufferReader != null) {
+        try {
+          bufferReader.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
       }
     }
 
@@ -242,7 +248,7 @@ public class ActionSubmitApp implements ClientAction {
               + "appId=" + appId.getId()
               + ", appDiagnostics=" + report.getDiagnostics()
               + ", appQueue=" + report.getQueue()
-              + ", progress= " + String.format("%.1f",report.getProgress()*100) + "%");
+              + ", progress= " + String.format("%.1f", report.getProgress() * 100) + "%");
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       if (YarnApplicationState.FINISHED == state) {
