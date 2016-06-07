@@ -31,7 +31,8 @@ public class TestNJobImpl {
   @BeforeClass
   public static void setup() throws Exception {
     conf = new YarnConfiguration();
-    zkTestServer = new TestingServer(2181);
+    conf.set("hadoop.registry.zk.quorum", "localhost:2182");
+    zkTestServer = new TestingServer(2182);
 
     dispatcher = new AsyncDispatcher();
     dispatcher.init(conf);
@@ -53,13 +54,13 @@ public class TestNJobImpl {
     NJobImpl nJob = new NJobImpl("Narwhal job", applicationAttemptId, conf, appContext.getEventHandler());
     JobEvent jobEvent = new JobEvent(nJob.getID(), JobEventType.JOB_INIT);
 
-    String name = "yuqiang-docker";
-    double cpus = 2;
-    double mem = 2048;
+//    String name = "yuqiang-docker";
+//    double cpus = 2;
+//    double mem = 2048;
     int instances = 10;
-    String cmd = "sleep 15; cat /proc/1/cgroup";
-    String image = "centos_yarn";
-    boolean localImage = false;
+//    String cmd = "sleep 15; cat /proc/1/cgroup";
+//    String image = "centos_yarn";
+//    boolean localImage = false;
 
     NarwhalConfig narwhalConfig = mock(NarwhalConfig.class);
     when(narwhalConfig.getInstances()).thenReturn(instances);
