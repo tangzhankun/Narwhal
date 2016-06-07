@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 
 import org.apache.commons.cli.ParseException;
-import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.util.JarFinder;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -18,8 +17,8 @@ import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -32,23 +31,21 @@ import static org.mockito.Mockito.when;
 
 public class TestActionSubmitApp {
 
-  private MiniYARNCluster yarnCluster;
-  private MiniDFSCluster hdfsCluster;
-  private YarnConfiguration conf;
+  private static MiniYARNCluster yarnCluster;
+  private static YarnConfiguration conf;
 
-  private int numResourceManagers = 1;
-  private int numNodeManagers = 1;
-  private int numLocalDirs = 1;
-  private int numLogDirs = 1;
-  private int numDataNodes = 1;
+  private static int numResourceManagers = 1;
+  private static int numNodeManagers = 1;
+  private static int numLocalDirs = 1;
+  private static int numLogDirs = 1;
 
   private String NAppMasterJar = JarFinder.getJar(NAppMaster.class);
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  @Before
-  public void setup() throws IOException {
+  @BeforeClass
+  public static void setup() throws IOException {
     yarnCluster = MiniClusterCreator.createYarnCluster(TestActionSubmitApp.class.getSimpleName(), numResourceManagers, numNodeManagers, numLocalDirs, numLogDirs);
     conf = new YarnConfiguration();
     yarnCluster.init(conf);
@@ -152,15 +149,11 @@ public class TestActionSubmitApp {
     assertTrue(result);
   }
 
-  @After
-  public void tearDown() {
+  @AfterClass
+  public static void tearDown() {
     if (yarnCluster != null) {
       yarnCluster.stop();
     }
-    if (hdfsCluster != null) {
-      hdfsCluster.shutdown();
-    }
-
   }
 
 }
