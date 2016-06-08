@@ -34,12 +34,8 @@ public class TestNJobImpl {
     conf.set("hadoop.registry.zk.quorum", "localhost:12181");
     zkTestServer = new TestingServer(12181);
 
-    dispatcher = new AsyncDispatcher();
-    dispatcher.init(conf);
-    dispatcher.start();
     appContext = mock(AppContext.class);
     jobEventDispatcher = new JobEventDispatcher(appContext);
-    dispatcher.register(JobEventType.class, jobEventDispatcher);
   }
 
   @Test
