@@ -32,15 +32,15 @@ mvn clean package -DskipTests
 docker pull centos:latest
 cat <<'EOF' > artifact.json
 {
-    "name": "hello-docker",
-    "cpus": 2,
-    "mem": 32,
-    "instances": 2,
-    "cmd": "echo \"hello docker\"",
-    "engine": {
-        "type": "DOCKER",
-        "image": "centos",
-        "localImage": true
+    'name': 'hello-docker',
+    'cpus': 2.0,
+    'mem': 32.0,
+    'instances': 2,
+    'cmd': 'echo \"hello docker\"',
+    'engine': {
+        'type': 'DOCKER',
+        'image': 'centos',
+        'localImage': true
     }
 }
 EOF
