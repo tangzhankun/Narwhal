@@ -1,9 +1,12 @@
 {
-	"name": "yuqiang-docker",
-	"cpus": 2,
-	"mem": 2048,
-	"instances": 10,
-	"cmd": "sleep 15; cat /proc/1/cgroup",
-	"image": "centos_yarn",
-	"localImage": false
+    'name': 'hello-docker',
+    'cpus': 2.0,
+    'mem': 32.0,
+    'instances': 2,
+    'cmd': 'echo \"hello docker\"',
+    'engine': {
+        'type': 'DOCKER',
+        'image': 'centos',
+        'localImage': true
+    }
 }

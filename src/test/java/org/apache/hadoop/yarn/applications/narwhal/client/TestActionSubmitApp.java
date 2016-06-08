@@ -108,8 +108,8 @@ public class TestActionSubmitApp {
 
     NarwhalConfig narwhalConfig = mock(NarwhalConfig.class);
     when(narwhalConfig.getName()).thenReturn(name);
-    when(narwhalConfig.isLocalImage()).thenReturn(localImage);
-    when(narwhalConfig.getImage()).thenReturn(image);
+    when(narwhalConfig.isEngineLocalImage()).thenReturn(localImage);
+    when(narwhalConfig.getEngineImage()).thenReturn(image);
 
     Field narwhalConfigField = action.getClass().getDeclaredField("narwhalConfig");
     narwhalConfigField.setAccessible(true);
