@@ -77,8 +77,8 @@ public class NJobImpl implements Job, EventHandler<JobEvent> {
       for (int i = 0; i < taskNum; i++) {
         Task task = new NTaskImpl(nJob.getID(), i, nJob.eventHandler,
             narwhalConfig.getCmd(), (int)narwhalConfig.getCpus(),
-            (int)narwhalConfig.getMem(), 0, narwhalConfig.getImage(),
-            narwhalConfig.isLocalImage(), narwhalConfig.getName(), nJob.nRegistryOperator);
+            (int)narwhalConfig.getMem(), 0, narwhalConfig.getEngineImage(),
+            narwhalConfig.isEngineLocalImage(), narwhalConfig.getName(), nJob.nRegistryOperator);
         nJob.addTask(task);
       }
       LOG.info("create " + taskNum + " tasks.");

@@ -38,7 +38,6 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.applications.narwhal.common.ImageUtil;
 import org.apache.hadoop.yarn.applications.narwhal.config.BuilderException;
 import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfig;
-import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfigBuilder;
 import org.apache.hadoop.yarn.applications.narwhal.config.NarwhalConfigParser;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
@@ -125,12 +124,12 @@ public class ActionSubmitApp implements ClientAction {
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
     FileSystem fs = FileSystem.get(conf);
     //upload the local docker image
-    if (narwhalConfig.isLocalImage()) {
-      boolean dockerImgUploaded = uploadDockerImage(fs, appId.toString(), narwhalConfig.getImage());
+    if (narwhalConfig.isEngineLocalImage()) {
+      boolean dockerImgUploaded = uploadDockerImage(fs, appId.toString(), narwhalConfig.getEngineImage());
       if (dockerImgUploaded) {
-        LOG.info("Local Docker image " + narwhalConfig.getImage() + " uploaded successfully");
+        LOG.info("Local Docker image " + narwhalConfig.getEngineImage() + " uploaded successfully");
       } else {
-        LOG.info("Local Docker image " + narwhalConfig.getImage() + " upload failed, existing");
+        LOG.info("Local Docker image " + narwhalConfig.getEngineImage() + " upload failed, existing");
         System.exit(3);
       }
     }
@@ -185,12 +184,9 @@ public class ActionSubmitApp implements ClientAction {
   }
 
   private NarwhalConfig parseConfigFile(String configFileContent) {
-    NarwhalConfigBuilder builder = new NarwhalConfigBuilder();
     NarwhalConfig config = null;
     try {
-      new NarwhalConfigParser(builder).parse(configFileContent);
-      config = builder.build();
-
+      config = NarwhalConfigParser.parse(configFileContent);
     } catch (BuilderException | JSONException e) {
       // TODO
     }
