@@ -51,7 +51,6 @@ public class TestActionSubmitApp {
     yarnCluster.init(conf);
     yarnCluster.start();
 
-    conf = new YarnConfiguration();
   }
 
   @Test

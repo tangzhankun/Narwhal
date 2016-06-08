@@ -31,8 +31,8 @@ public class TestNJobImpl {
   @BeforeClass
   public static void setup() throws Exception {
     conf = new YarnConfiguration();
-    conf.set("hadoop.registry.zk.quorum", "localhost:2182");
-    zkTestServer = new TestingServer(2182);
+    conf.set("hadoop.registry.zk.quorum", "localhost:12181");
+    zkTestServer = new TestingServer(12181);
 
     dispatcher = new AsyncDispatcher();
     dispatcher.init(conf);
