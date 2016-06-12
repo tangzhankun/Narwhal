@@ -15,7 +15,6 @@ import org.apache.hadoop.yarn.applications.narwhal.task.TaskId;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -30,7 +29,6 @@ public class TestContainerAllocator {
 
   private static YarnConfiguration conf;
   private static AppContext appContext;
-  private static AsyncDispatcher dispatcher;
   private static ContainerAllocator containerAllocator;
 
   @BeforeClass
