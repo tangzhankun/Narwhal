@@ -180,7 +180,6 @@ public class TestNJobImpl {
     JobEvent jobEvent = new JobEvent(nJob.getID(), JobEventType.JOB_COMPLETED);
     jobEvent.setNarwhalConfig(narwhalConfig);
 
-    List<Task> originTasks = nJob.getTasks();
     Field tasksField = nJob.getClass().getDeclaredField("tasks");
     tasksField.setAccessible(true);
     LinkedHashMap<TaskId, Task> tasks = new LinkedHashMap<>();
