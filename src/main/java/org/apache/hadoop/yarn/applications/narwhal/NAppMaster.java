@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.log4j.LogManager;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -148,11 +149,12 @@ public class NAppMaster {
   private boolean parseOptions(String[] args) throws ParseException, IOException {
     Map<String, String> envs = System.getenv();
     
-    ContainerId containerId = ContainerId.fromString(
-        envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
-    applicationAttemptId = containerId.getApplicationAttemptId();
-    LOG.info("applicationAttemptId: " + applicationAttemptId);
-    
+    String amContainerId = envs.get(ApplicationConstants.Environment.CONTAINER_ID.name());
+    if(amContainerId != null && !amContainerId.equals("")) {
+      ContainerId containerId = ContainerId.fromString(amContainerId);
+      applicationAttemptId = containerId.getApplicationAttemptId();
+      LOG.info("applicationAttemptId: " + applicationAttemptId);
+    }
     String configPath = "./" + configFilePath;
     narwhalConfig = deserializeObj(configPath);
     
@@ -224,9 +226,13 @@ public class NAppMaster {
   private NarwhalConfig deserializeObj(String path){
     NarwhalConfig narwhalConfig = null;
     try {
-      ObjectInputStream ois = new ObjectInputStream(new FileInputStream(path));
-      narwhalConfig = (NarwhalConfig) ois.readObject();
-      ois.close();
+      File file = new File(path);
+      boolean exists = file.exists();
+      if(exists) {
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(path));
+        narwhalConfig = (NarwhalConfig) ois.readObject();
+        ois.close();    		
+    	}
   	} catch (IOException | ClassNotFoundException e) {
   		e.printStackTrace();
   	}
