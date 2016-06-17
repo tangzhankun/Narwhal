@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 
 import org.apache.commons.cli.ParseException;
+import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -16,9 +17,12 @@ import org.apache.hadoop.yarn.applications.narwhal.job.NJobImpl;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerAllocator;
 import org.apache.hadoop.yarn.applications.narwhal.service.ContainerLauncher;
 import org.apache.hadoop.yarn.applications.narwhal.state.JobState;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.AsyncDispatcher;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -42,9 +46,16 @@ public class TestNAppMaster {
   private AsyncDispatcher dispatcher;
   private ApplicationAttemptId applicationAttemptId;
   private NJobImpl nJob;
+  private static YarnConfiguration conf;
+  private static TestingServer zkTestServer;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+  
+  @BeforeClass
+  public static void setupZk() throws Exception {
+    zkTestServer = new TestingServer(12181);
+  }
 
   @Before
   public void setup() throws Exception {
@@ -89,6 +100,13 @@ public class TestNAppMaster {
     Field jobField = nAppMaster.getClass().getDeclaredField("job");
     jobField.setAccessible(true);
     jobField.set(nAppMaster, nJob);
+    
+    conf = new YarnConfiguration();
+    conf.set("hadoop.registry.zk.quorum", "localhost:12181");
+    
+    Field confField = nAppMaster.getClass().getDeclaredField("conf");
+    confField.setAccessible(true);
+    confField.set(nAppMaster, conf);
   }
 
   @Test
@@ -129,6 +147,11 @@ public class TestNAppMaster {
   @After
   public void tearDown() {
 
+  }
+  
+  @AfterClass
+  public static void tearDownZk() throws IOException {
+    zkTestServer.stop();
   }
 
 }
