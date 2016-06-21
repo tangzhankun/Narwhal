@@ -51,8 +51,8 @@ public class TestNJobImpl {
   @BeforeClass
   public static void setupZk() throws Exception {
     conf = new YarnConfiguration();
-    conf.set("hadoop.registry.zk.quorum", "localhost:12181");
-    zkTestServer = new TestingServer(12181);
+    conf.set("hadoop.registry.zk.quorum", "localhost:12182");
+    zkTestServer = new TestingServer(12182);
   }
 
   @Before
@@ -232,7 +232,7 @@ public class TestNJobImpl {
 
   @AfterClass
   public static void tearDownZk() throws IOException {
-    zkTestServer.stop();
+//    zkTestServer.stop();
   }
 
 }

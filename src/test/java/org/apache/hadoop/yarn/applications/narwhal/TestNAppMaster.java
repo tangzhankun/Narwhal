@@ -151,7 +151,7 @@ public class TestNAppMaster {
   
   @AfterClass
   public static void tearDownZk() throws IOException {
-    zkTestServer.stop();
+//    zkTestServer.stop();
   }
 
 }
