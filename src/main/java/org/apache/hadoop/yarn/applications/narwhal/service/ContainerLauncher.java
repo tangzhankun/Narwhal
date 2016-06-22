@@ -147,12 +147,15 @@ public class ContainerLauncher extends EventLoop implements EventHandler<Contain
         try {
           fs = FileSystem.get(new YarnConfiguration());
           Path dst = new Path(fs.getHomeDirectory(), resourcePath);
-          FileStatus scFileStatus = fs.getFileStatus(dst);
-          LocalResource scRsrc = LocalResource.newInstance(
-              ConverterUtils.getYarnUrlFromURI(dst.toUri()), LocalResourceType.FILE,
-              LocalResourceVisibility.APPLICATION, scFileStatus.getLen(),
-              scFileStatus.getModificationTime());
-          localResources.put(resourceFileName, scRsrc);
+          boolean exists = fs.exists(dst);
+          if(exists) {
+            FileStatus scFileStatus = fs.getFileStatus(dst);
+            LocalResource scRsrc = LocalResource.newInstance(
+                ConverterUtils.getYarnUrlFromURI(dst.toUri()), LocalResourceType.FILE,
+                LocalResourceVisibility.APPLICATION, scFileStatus.getLen(),
+                scFileStatus.getModificationTime());
+            localResources.put(resourceFileName, scRsrc);          	
+          }
         } catch (IOException e) {
           e.printStackTrace();
         }
