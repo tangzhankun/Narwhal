@@ -3,7 +3,7 @@ package org.apache.hadoop.yarn.applications.narwhal.config;
 import java.io.Serializable;
 import java.util.Arrays;
 
-public class VolumeConfig implements Serializable{
+class VolumeConfig implements Serializable{
 
     private final String containerPath;
 

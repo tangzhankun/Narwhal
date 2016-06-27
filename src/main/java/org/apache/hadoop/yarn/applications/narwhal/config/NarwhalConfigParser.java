@@ -38,8 +38,7 @@ public class NarwhalConfigParser {
             EngineConfig engineConfig = parseEngineConfig(engineObj);
             builder.engineConfig(engineConfig);
         }
-        NarwhalConfig config = builder.build();
-        return config;
+        return builder.build();
     }
 
     private static EngineConfig parseEngineConfig(JSONObject obj) throws JSONException, BuilderException {

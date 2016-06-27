@@ -50,7 +50,7 @@ class EngineConfig implements Serializable {
 
         private boolean localImage = true;
 
-        private List<VolumeConfig> volumeConfigs = new ArrayList<VolumeConfig>();
+        private List<VolumeConfig> volumeConfigs = new ArrayList<>();
 
         Builder type(String type) throws BuilderException {
             if (Arrays.asList(ENGINE_TYPES).contains(type))
