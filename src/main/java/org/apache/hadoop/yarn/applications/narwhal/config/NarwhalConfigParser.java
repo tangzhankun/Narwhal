@@ -50,6 +50,16 @@ public class NarwhalConfigParser {
             engineBuilder.image(obj.getString("image").trim());
         if (obj.has("localImage"))
             engineBuilder.localImage(obj.getBoolean("localImage"));
+        if (obj.has("volumes")) {
+            JSONArray volumesObjArray = obj.getJSONArray("volumes");
+            for (int i = 0; i < volumesObjArray.length(); i++) {
+                JSONObject volumeObj = (JSONObject) volumesObjArray.get(i);
+                engineBuilder.addVolume(new VolumeConfig.Builder()
+                        .containerPath(volumeObj.getString("containerPath"))
+                        .hostPath(volumeObj.getString("hostPath"))
+                        .mountMode(volumeObj.getString("mountMode")).build());
+            }
+        }
         return engineBuilder.build();
     }
 }

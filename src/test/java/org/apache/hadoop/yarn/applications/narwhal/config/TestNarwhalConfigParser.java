@@ -14,4 +14,11 @@ public class TestNarwhalConfigParser {
         assertEquals(expected, actual);
     }
 
+    @org.junit.Test
+    public void testVolumeMountConfigParse() throws Exception {
+        NarwhalConfig config = NarwhalConfigParser.parse(NarwhalConfigCorpus.testVolumeMountInput);
+        String actual = config.toString();
+        String expected = NarwhalConfigCorpus.testVolumeMountOutput;
+        assertEquals(expected, actual);
+    }
 }

@@ -31,7 +31,7 @@ public class NarwhalConfig implements Serializable {
     }
 
     public String toString() {
-        return new StringBuilder()
+        StringBuilder narwhalConfig = new StringBuilder()
                 .append("name: " + this.name + "\n")
                 .append("cpus: " + this.cpus + "\n")
                 .append("mem: " + this.mem + "\n")
@@ -39,8 +39,14 @@ public class NarwhalConfig implements Serializable {
                 .append("cmd: " + this.cmd + "\n")
                 .append("engine_type: " + this.engineConfig.getType() + "\n")
                 .append("engine_image: " + this.engineConfig.getImage() + "\n")
-                .append("engine_localImage: " + this.engineConfig.isLocalImage() + "\n")
-                .toString();
+                .append("engine_localImage: " + this.engineConfig.isLocalImage() + "\n");
+
+        for (VolumeConfig vc : this.engineConfig.getVolumeConfigs()) {
+            narwhalConfig.append("engine_volume_containerPath: " + vc.getContainerPath() + "\n")
+                         .append("engine_volume_hostPath: " + vc.getHostPath() + "\n")
+                         .append("engine_volume_mountMode: " + vc.getMountMode() + "\n");
+        }
+        return narwhalConfig.toString();
     }
 
     public String getName() {
@@ -77,6 +83,10 @@ public class NarwhalConfig implements Serializable {
 
     public boolean isEngineLocalImage() {
         return engineConfig.isLocalImage();
+    }
+
+    public List<VolumeConfig> getVolumeConfig() {
+        return engineConfig.getVolumeConfigs();
     }
 
     static class Builder {
