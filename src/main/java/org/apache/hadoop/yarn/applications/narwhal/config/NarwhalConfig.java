@@ -44,7 +44,7 @@ public class NarwhalConfig implements Serializable {
         for (VolumeConfig vc : this.engineConfig.getVolumeConfigs()) {
             narwhalConfig.append("engine_volume_containerPath: " + vc.getContainerPath() + "\n")
                          .append("engine_volume_hostPath: " + vc.getHostPath() + "\n")
-                         .append("engine_volume_mountMode: " + vc.getMountMode() + "\n");
+                         .append("engine_volume_mode: " + vc.getMode() + "\n");
         }
         return narwhalConfig.toString();
     }

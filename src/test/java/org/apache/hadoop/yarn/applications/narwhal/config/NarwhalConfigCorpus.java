@@ -68,9 +68,9 @@ public class NarwhalConfigCorpus {
             .append("engine_localImage: true\n")
             .append("engine_volume_containerPath: /etc/a\n")
             .append("engine_volume_hostPath: /var/a\n")
-            .append("engine_volume_mountMode: RO\n")
+            .append("engine_volume_mode: RO\n")
             .append("engine_volume_containerPath: /etc/b\n")
             .append("engine_volume_hostPath: /var/b\n")
-            .append("engine_volume_mountMode: RO\n")
+            .append("engine_volume_mode: RO\n")
             .toString();
 }

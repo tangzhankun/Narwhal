@@ -9,12 +9,12 @@ public class VolumeConfig implements Serializable{
 
     private final String hostPath;
 
-    private final String mountMode;
+    private final String mode;
 
     private VolumeConfig(Builder builder) {
         this.containerPath = builder.containerPath;
         this.hostPath = builder.hostPath;
-        this.mountMode = builder.mountMode;
+        this.mode = builder.mode;
     }
 
     String getContainerPath() {
@@ -25,21 +25,21 @@ public class VolumeConfig implements Serializable{
         return hostPath;
     }
 
-    String getMountMode() {
-        return mountMode;
+    String getMode() {
+        return mode;
     }
 
     static class Builder {
 
-        private static final String READ_ONLY_MOUNT = "RO";
+        private static final String READ_ONLY = "RO";
 
-        private static final String[] MOUNT_MODES = {READ_ONLY_MOUNT};
+        private static final String[] MODES = {READ_ONLY};
 
         private String containerPath;
 
         private String hostPath;
 
-        private String mountMode;
+        private String mode;
 
         Builder containerPath(String containerPath) throws BuilderException {
             if (containerPath.isEmpty())
@@ -55,10 +55,10 @@ public class VolumeConfig implements Serializable{
             return this;
         }
 
-        Builder mountMode(String mountMode) throws BuilderException {
-            if (!Arrays.asList(MOUNT_MODES).contains(mountMode))
+        Builder mode(String mode) throws BuilderException {
+            if (!Arrays.asList(MODES).contains(mode))
                 throw new BuilderException("Invalid mount mode");
-            this.mountMode = mountMode;
+            this.mode = mode;
             return this;
         }
 

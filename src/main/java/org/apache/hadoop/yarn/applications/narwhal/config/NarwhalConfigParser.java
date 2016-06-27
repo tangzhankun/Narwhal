@@ -57,7 +57,7 @@ public class NarwhalConfigParser {
                 engineBuilder.addVolume(new VolumeConfig.Builder()
                         .containerPath(volumeObj.getString("containerPath"))
                         .hostPath(volumeObj.getString("hostPath"))
-                        .mountMode(volumeObj.getString("mode")).build());
+                        .mode(volumeObj.getString("mode")).build());
             }
         }
         return engineBuilder.build();
