@@ -85,7 +85,7 @@ public class NarwhalConfig implements Serializable {
         return engineConfig.isLocalImage();
     }
 
-    public List<VolumeConfig> getVolumeConfig() {
+    public List<VolumeConfig> getVolumeConfigs() {
         return engineConfig.getVolumeConfigs();
     }
 

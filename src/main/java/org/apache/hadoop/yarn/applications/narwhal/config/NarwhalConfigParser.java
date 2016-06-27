@@ -53,11 +53,11 @@ public class NarwhalConfigParser {
         if (obj.has("volumes")) {
             JSONArray volumesObjArray = obj.getJSONArray("volumes");
             for (int i = 0; i < volumesObjArray.length(); i++) {
-                JSONObject volumeObj = (JSONObject) volumesObjArray.get(i);
+                JSONObject volumeObj = volumesObjArray.getJSONObject(i);
                 engineBuilder.addVolume(new VolumeConfig.Builder()
                         .containerPath(volumeObj.getString("containerPath"))
                         .hostPath(volumeObj.getString("hostPath"))
-                        .mountMode(volumeObj.getString("mountMode")).build());
+                        .mountMode(volumeObj.getString("mode")).build());
             }
         }
         return engineBuilder.build();
